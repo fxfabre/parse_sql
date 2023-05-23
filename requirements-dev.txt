@@ -1,0 +1,15 @@
+-r requirements.txt
+
+# Dev & scripts
+jupyterlab
+pip-tools
+
+# Tests
+pytest
+pytest-cov
+parameterized
+
+# Lint
+black
+bandit
+pre-commit
