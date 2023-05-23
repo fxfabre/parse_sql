@@ -11,14 +11,13 @@ def extract_from_join(sql_nodes):
         table_exp = get(table_def, ["join_clause"]) or table_def
         table_from, table_alias = read_table_ids(table_exp)
 
-        try:
+        if isinstance(table_alias, list):
+            # File has implicit cross join, with ", unnest(...)"
+            # Should raise an error, parsing is incomplete
+            for _table_from, _table_alias in zip(table_from, table_alias):
+                all_from_tables[_table_alias] = _table_from
+        else:
             all_from_tables[table_alias] = table_from
-        except Exception:
-            print("Failed", table_alias)
-            print(table_def)
-            print(table_exp)
-            print(table_from)
-            raise
 
         join_exp = get(table_exp, ["join_on_condition", "expression"])
         all_join_conditions.extend(parse_join_condition(join_exp))

@@ -6,7 +6,7 @@ from .from_join import extract_from_join
 from .parsing_tools import get, parse_raw_query
 
 
-def parse_sql_file(file_path_or_query: str):
+def read_and_parse_sql_file(file_path_or_query: str):
     if file_path_or_query.endswith(".sql"):
         query = Path(file_path_or_query).read_text()
     else:
@@ -14,6 +14,13 @@ def parse_sql_file(file_path_or_query: str):
 
     sql_nodes = parse_raw_query(query)
 
+    return_dict = OrderedDict()
+    for k, v in parse_sql_file(sql_nodes).items():
+        return_dict[k] = [v]
+    return return_dict
+
+
+def parse_sql_file(sql_nodes) -> OrderedDict:
     ctes = get(sql_nodes, ["with_compound_statement", "common_table_expression"])
     select = get(sql_nodes, ["with_compound_statement", "select_statement"]) or get(
         sql_nodes, ["select_statement"]
