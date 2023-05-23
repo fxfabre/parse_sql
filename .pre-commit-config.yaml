@@ -11,7 +11,7 @@ repos:
       - id: black
         args:
           [
-            --force-exclude=dags/d04_compute_python/python_src|plugins/ds_tools,
+            --force-exclude=path/p1|path/p2,
             --line-length=100,
           ]
   - repo: https://github.com/pre-commit/pre-commit-hooks

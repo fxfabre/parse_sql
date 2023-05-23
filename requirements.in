@@ -1,2 +1,2 @@
-parameterized
 pandas==1.5.3
+sqlfluff
