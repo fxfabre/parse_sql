@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Dict, List
 
 formatters = {}
 
@@ -58,6 +58,50 @@ def format_from_expression(node) -> List[Dict]:
         else:
             return_items.append(item)
     return return_items
+
+
+# @register_formatter
+def format_common_table_expression(node) -> List[List[Dict]]:
+    """ Output format :
+    [
+        [
+            {"naked_identifier": "cte_name_1"},
+            {"keyword": "as"},
+            {
+                "bracketed": [
+                    {"start_bracket": "("},
+                    {"select_statement": {"select_clause": {...}},
+                    {"end_bracket": ")"}
+                ]
+            }
+        ],
+        [
+            {"naked_identifier": "cte_name_2"},
+            {"keyword": "as"},
+            {
+                "bracketed": [
+                    {"start_bracket": "("},
+                    {"select_statement": { "select_clause": {...},
+                    {"end_bracket": ")"}
+                ]
+            }
+        ]
+    ]
+    """
+    if isinstance(node, dict):
+        return [] if len(node) == 0 else [[node]]   # Quand est ce que ca arrive ?
+    if not isinstance(node, list):
+        raise Exception(f"Unexpected format for common_table_expression {node}")
+    if len(node) == 0:
+        return []
+    if isinstance(node[0], dict):
+        return [node]
+    return node
+
+
+@register_formatter
+def format_select_statement(node) -> List[Dict]:
+    return [node]
 
 
 @register_formatter
