@@ -20,5 +20,5 @@ SELECT
     DATETIME(PARSE_TIMESTAMP('%d/%m/%Y %H:%M:%S', CAST_NONE(JSON_EXTRACT_SCALAR(wrapups, "$.wrappedAt")), 'Europe/Paris'))    AS cree_a
 FROM DW_DIABOLO.calls_details_recording         AS cdr,
     UNNEST(JSON_EXTRACT_ARRAY(cdr.callWrapups)) AS wrapups
-LEFT JOIN DW_DIABOLO.public_users AS u ON cdr.callWrapups_agentId = CAST(u.id AS STRING)
-LEFT JOIN DW_SHERLOCK.operateurs AS o ON LOWER(u.email) = LOWER(o.email)
+LEFT JOIN DW_DIABOLO.public_users AS u ON cdr.callWrapups_agentId = u.id
+LEFT JOIN DW_SHERLOCK.operateurs AS o ON u.email = o.email
