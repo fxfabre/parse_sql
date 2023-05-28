@@ -297,7 +297,42 @@ union_all = {
 }
 
 ctes = {
-    "tests/sql_test_files/query_cte.sql_2": OrderedDict(
+    "tests/sql_test_files/cte_1.sql": OrderedDict(
+        cte_name=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table1": "dataset.table1"},
+            "join": [],
+        }],
+        __query__=[{
+            "select": {
+                "col_2": "col_1",
+            },
+            "tables": {"cte_name": "cte_name"},
+            "join": [],
+        }],
+    ),
+    "tests/sql_test_files/cte_2.sql": OrderedDict(
+        cte_name=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table1": "dataset.table1"},
+            "join": [],
+        }],
+        cte_2=[{
+            "select": {"col_2": "col_2", "col_3": "col_3"},
+            "tables": {"t2": "dataset.t2", "t3": "dataset.table"},
+            "join": [(["t2", "id"], ["t3", "t2_id"])],
+        }],
+        __query__=[{
+            "select": {
+                "col_1": "col_1",
+                "col_2": "col_2",
+                "col_3": "col_3",
+            },
+            "tables": {"cte_name": "cte_name", "cte_2": "cte_2"},
+            "join": [(["cte_name", "col_1"], ["cte_2", "col_3"])],
+        }],
+    ),
+    "tests/sql_test_files/cte_3.sql": OrderedDict(
         call_tmp=[{
             "select": {
                 "call_date": "function()",
@@ -387,26 +422,6 @@ ctes = {
             "join": [],
         }],
     ),
-    "tests/sql_test_files/query_cte.sql_1": OrderedDict(
-        cte_name=[{
-            "select": {"col_1": "col_1"},
-            "tables": {"table1": "dataset.table1"},
-        }],
-        cte_2=[{
-            "select": {"col_2": "col_2", "col_3": "col_3"},
-            "tables": {"t2": "dataset.t2", "t3": "dataset.table"},
-            "join": [(["t2", "id"], ["t3", "t2_id"])],
-        }],
-        __query__=[{
-            "select": {
-                "col_1": "col_1",
-                "col_2": "col_2",
-                "col_3": "col_3",
-            },
-            "tables": {"cte_name": "cte_name", "cte_2": "cte_2"},
-            "join": [(["cte_name", "col_1"], ["cte_2", "col_3"])],
-        }],
-    ),
 }
 
 unnest_queries = {
@@ -445,11 +460,13 @@ unnest_queries = {
 class TestEachSql(TestCase):
     @parameterized.expand(ctes.items())
     def test_parse_cte(self, query, expected: Dict):
-        pytest.skip()
         parsing_by_cte = read_and_parse_sql_file(query)
-        # from pprint import pprint
-        # pprint(parsing_by_cte)
-        # pprint(expected)
+        from pprint import pprint
+        print("Expecting")
+        pprint(expected)
+        print("actual")
+        pprint(parsing_by_cte)
+
         self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
 
     @parameterized.expand(union_all.items())

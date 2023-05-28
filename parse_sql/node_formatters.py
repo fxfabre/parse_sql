@@ -60,7 +60,7 @@ def format_from_expression(node) -> List[Dict]:
     return return_items
 
 
-# @register_formatter
+@register_formatter
 def format_common_table_expression(node) -> List[List[Dict]]:
     """ Output format :
     [
@@ -88,15 +88,9 @@ def format_common_table_expression(node) -> List[List[Dict]]:
         ]
     ]
     """
-    if isinstance(node, dict):
-        return [] if len(node) == 0 else [[node]]   # Quand est ce que ca arrive ?
-    if not isinstance(node, list):
-        raise Exception(f"Unexpected format for common_table_expression {node}")
     if len(node) == 0:
         return []
-    if isinstance(node[0], dict):
-        return [node]
-    return node
+    return [node]
 
 
 @register_formatter
