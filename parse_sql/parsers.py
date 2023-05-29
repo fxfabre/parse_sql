@@ -1,7 +1,8 @@
+import logging
 from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, List
-import logging
+
 from .from_join import extract_from_join
 from .parsing_tools import get, parse_raw_query
 
@@ -39,25 +40,33 @@ def parse_sql_file(sql_nodes) -> OrderedDict:
 
 
 def parse_query(sql_node) -> List[Dict]:
-    set_expression = sql_node
-    # set_expression = get(sql_node, ["set_expression"]) or sql_node
+    set_expressions = get(sql_node, ["set_expression"]) or [sql_node]
 
-    all_select = dict()
-    all_tables = dict()
-    all_join = []
-    for select_statement in get(set_expression, ["select_statement"]):
-        select = extract_select(select_statement)
-        source_tables, join_conditions = extract_from_join(select_statement)
+    parsed_tables = []
+    for set_expression in set_expressions:
+        if isinstance(set_expression, dict):
+            keys = set(set_expression.keys())
+            if len({"set_operator", "block_comment", "inline_comment"} & keys) > 0:
+                continue
 
-        all_select.update(select)
-        all_tables.update(source_tables)
-        all_join.extend(join_conditions)
+        all_select = dict()
+        all_tables = dict()
+        all_join = []
+        for select_statement in get(set_expression, ["select_statement"]):
+            select = extract_select(select_statement)
+            source_tables, join_conditions = extract_from_join(select_statement)
 
-    return [{
-        "select": all_select,
-        "tables": all_tables,
-        "join": all_join,
-    }]
+            all_select.update(select)
+            all_tables.update(source_tables)
+            all_join.extend(join_conditions)
+
+        parsed_tables.append({
+            "select": all_select,
+            "tables": all_tables,
+            "join": all_join,
+        })
+
+    return parsed_tables
 
 
 def extract_select(select_node):

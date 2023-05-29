@@ -1,10 +1,10 @@
 import json
 import logging
 from collections import OrderedDict
+from pprint import pprint
 from typing import Dict
 from unittest import TestCase
 
-import pytest
 from parameterized import parameterized
 
 from parse_sql.parsers import read_and_parse_sql_file
@@ -13,6 +13,92 @@ logging.getLogger("sqlfluff").setLevel(logging.WARNING)
 
 
 union_all = {
+    """
+        SELECT col_1
+        FROM dataset.table
+
+        UNION ALL
+
+        SELECT col_1
+        FROM dataset.table
+    """: OrderedDict(
+        __query__=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }, {
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }],
+    ),
+    """
+        with cte_1 as (
+            /* ###########     sub query 1    ############## */
+            SELECT col_1
+            FROM dataset.table
+    
+            UNION ALL
+    
+            /* ###########     sub query 2    ############## */
+            SELECT col_1
+            FROM dataset.table
+        )
+        select col_1 as name_1
+        from cte_1
+    """: OrderedDict(
+        cte_1=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }, {
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }],
+        __query__=[{
+            "select": {"name_1": "col_1"},
+            "tables": {"cte_1": "cte_1"},
+            "join": [],
+        }]
+    ),
+    """
+        with cte_1 as (
+            SELECT col_1
+            FROM dataset.table
+    
+            UNION ALL
+    
+            SELECT col_1
+            FROM dataset.table
+        )
+        select col_1 as name_1
+        from cte_1
+        
+        UNION ALL
+        
+        select col_1 as name_1
+        from cte_1
+    """: OrderedDict(
+        cte_1=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }, {
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }],
+        __query__=[{
+            "select": {"name_1": "col_1"},
+            "tables": {"cte_1": "cte_1"},
+            "join": [],
+        }, {
+            "select": {"name_1": "col_1"},
+            "tables": {"cte_1": "cte_1"},
+            "join": [],
+        }]
+    ),
     "tests/sql_test_files/b2c_demandes.sql": OrderedDict(
         existing_business_tmp=[{
             "join": [
@@ -172,10 +258,41 @@ union_all = {
                 "wrapup": "last_wrapup_name_by_piste",
             },
         }],
-        join_prospect_intentionistes___1=[
-            {"join": [], "select": {}, "tables": {}},
-            {"join": [], "select": {}, "tables": {}}
-        ],
+        join_prospect_intentionistes=[{
+            'select': {
+                'piste_id': 'piste.id',
+                'contact_effy_uid': 'ddp.contact_effy_uid',
+                'deals_custom_id': 'piste.id',
+                'deals_created_at': 'piste.created_at',
+                'deals_close_won_reason': 'ddp.deals_close_won_reason',
+                'deals_close_lost_reason': 'ddp.deals_close_lost_reason',
+                'deals_closed_at': 'ddp.deals_closed_at',
+                'deals_updated_at': 'function()',
+                'deals_type': 'ddp.deals_type',
+            },
+            'tables': {
+                'ddp': 'deals_demande_prospects',
+                'piste': 'EFFY_STORE.pistes'
+            },
+            'join': [(['piste', 'id'], ['ddp', 'piste_id'])],
+        }, {
+            'select': {
+                'piste_id': 'piste.id',
+                'contact_effy_uid': 'ddp.contact_effy_uid',
+                'deals_custom_id': 'ddp.deals_custom_id',
+                'deals_created_at': 'piste.confirmee_a',
+                'deals_close_won_reason': 'ddp.deals_close_won_reason',
+                'deals_close_lost_reason': 'ddp.deals_close_lost_reason',
+                'deals_closed_at': 'ddp.deals_closed_at',
+                'deals_updated_at': 'function()',
+                'deals_type': 'ddp.deals_type',
+            },
+            'tables': {
+                'ddp': 'deals_transfo_non_intentionniste',
+                'piste': 'EFFY_STORE.pistes'
+            },
+            'join': [(['piste', 'id'], ['ddp', 'piste_id'])],
+        }],
         __query__=[{
             "join": [
                 (["join_all", "contact_effy_uid"], ["c", "contact_effy_uid"]),
@@ -285,15 +402,6 @@ union_all = {
             },
         }],
     ),
-    """
-        SELECT col_1
-        FROM dataset.table
-
-        UNION ALL
-
-        SELECT col_1
-        FROM dataset.table
-    """: OrderedDict(),
 }
 
 ctes = {
@@ -461,7 +569,7 @@ class TestEachSql(TestCase):
     @parameterized.expand(ctes.items())
     def test_parse_cte(self, query, expected: Dict):
         parsing_by_cte = read_and_parse_sql_file(query)
-        from pprint import pprint
+        print(query)
         print("Expecting")
         pprint(expected)
         print("actual")
@@ -470,10 +578,12 @@ class TestEachSql(TestCase):
         self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
 
     @parameterized.expand(union_all.items())
-    def test_union_all(self, file_path, expected):
-        pytest.skip()
-        parsing_by_cte = read_and_parse_sql_file(file_path)
-        # from pprint import pprint
-        # pprint(parsing_by_cte)
-        # pprint(expected)
+    def test_union_all(self, file_path_or_query, expected):
+        parsing_by_cte = read_and_parse_sql_file(file_path_or_query)
+        print(file_path_or_query)
+        print("Expecting")
+        pprint(expected)
+        print("actual")
+        pprint(parsing_by_cte)
+
         self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
