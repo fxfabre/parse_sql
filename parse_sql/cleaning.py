@@ -8,7 +8,7 @@ def clean_sql_tree(sql_node):
         return {
             key: clean_sql_tree(value)
             for key, value in sql_node.items()
-            if key not in ("whitespace", "newline", "comma")
+            if key not in ("whitespace", "newline", "comma", "block_comment", "inline_comment")
         }
     elif isinstance(sql_node, str):
         return sql_node.strip()

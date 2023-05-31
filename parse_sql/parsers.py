@@ -1,7 +1,7 @@
 import logging
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from .from_join import extract_from_join
 from .parsing_tools import get, parse_raw_query
@@ -14,7 +14,7 @@ def pretty_print(json_content):
     print(json.dumps(json_content, indent=4))
 
 
-def read_and_parse_sql_file(file_path_or_query: str):
+def read_and_parse_sql_file(file_path_or_query: Union[str, Path]):
     if isinstance(file_path_or_query, Path) or file_path_or_query.endswith(".sql"):
         query = Path(file_path_or_query).read_text()
     else:
@@ -44,10 +44,8 @@ def parse_query(sql_node) -> List[Dict]:
 
     parsed_tables = []
     for set_expression in set_expressions:
-        if isinstance(set_expression, dict):
-            keys = set(set_expression.keys())
-            if len({"set_operator", "block_comment", "inline_comment"} & keys) > 0:
-                continue
+        if isinstance(set_expression, dict) and "set_operator" in set_expression.keys():
+            continue
 
         all_select = dict()
         all_tables = dict()
