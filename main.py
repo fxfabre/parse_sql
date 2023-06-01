@@ -54,5 +54,5 @@ def extract_join_from_all_files(dag_dir: Path):
 
 
 if __name__ == '__main__':
-    dag_dir = Path(os.getenv("WORK_DIR")) / "data-flow" / "dags" / "d03_integration"
+    dag_dir = Path(os.getenv("WORK_DIR")) / "data-flow" / "dags"
     extract_join_from_all_files(dag_dir)
