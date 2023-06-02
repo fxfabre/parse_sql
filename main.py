@@ -50,7 +50,7 @@ def extract_join_from_all_files(dag_dir: Path):
 
     pd.DataFrame(
         c.items(), columns=["join_condition", "frequency"]
-    ).to_csv("joins_frequency.csv", index=False)
+    ).sort_values("frequency", ascending=False).to_csv("joins_frequency.csv", index=False)
 
 
 if __name__ == '__main__':
