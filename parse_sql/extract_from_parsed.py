@@ -164,6 +164,6 @@ def extract_all_joins_from_query(parsing_by_cte: Dict[str, Query]):
             )
 
             if left and right and left.lower() != right.lower():
-                all_conditions.extend([f"{left} = {right}", f"{right} = {left}"])
+                all_conditions.append(" = ".join(sorted([left, right], key=str.lower)))
 
     return all_conditions
