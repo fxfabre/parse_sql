@@ -1,6 +1,6 @@
 import json
-import logging
 from collections import OrderedDict
+from pathlib import Path
 from pprint import pprint
 from typing import Dict
 from unittest import TestCase
@@ -9,19 +9,255 @@ from parameterized import parameterized
 
 from parse_sql.parsers import read_and_parse_sql_file
 
-logging.getLogger("sqlfluff").setLevel(logging.WARNING)
+simple_queries = {
+    "tests/basic_queries/select_1.sql": OrderedDict(
+        __query__=[{
+            "select": {"col_1": "col_1", "n2": "table_alias.col_2", "*": "*"},
+            "tables": {"table_alias": "project_id.dataset.table_name"},
+            "join": [],
+        }]
+    ),
+    "tests/basic_queries/select_2.sql": OrderedDict(
+        __query__=[{
+            "select": {"col_1": "col_1", "n2": "table_name.col_2"},
+            "tables": {"alias_table_name": "dataset.table_name"},
+            "join": [],
+        }]
+    ),
+    "tests/basic_queries/select_3.sql": OrderedDict(
+        __query__=[{
+            "select": {"*": "*", "n2": "custom_name.col_2"},
+            "tables": {"custom_name": "project_id.dataset.table_name"},
+            "join": [],
+        }]
+    ),
+    "tests/basic_queries/query_groupby.sql": OrderedDict(
+        __query__=[{
+            "join": [],
+            "select": {
+                "campaign_id": "campaign_id",
+                "campaign_name": "campaign_name",
+                "date": "function()",
+                "duration": "function()",
+                "status_id": "status_id",
+                "status_name": "status_name",
+                "user_id": "user_id",
+                "user_name": "user_name",
+            },
+            "tables": {"agents_details_recording": "DW_DIABOLO.agents_details_recording"},
+        }]
+    ),
+    "tests/basic_queries/query_groupby_2.sql": OrderedDict(
+        __query__=[{
+            "join": [],
+            "select": {
+                "callType": "callType",
+                "displayedNumber": "displayedNumber",
+                "mois": "function()",
+                "nb_calls": "function()",
+                "nb_repondeurs": "function()",
+            },
+            "tables": {"calls_details_recording": "DW_DIABOLO.calls_details_recording"},
+        }]
+    ),
+    "tests/basic_queries/query_join.sql": OrderedDict(
+        __query__=[{
+                "join": [(["table1", "c1"], ["table2", "c2"])],
+                "select": {"*": "*", "col_1": "col_1", "name_2": "col_2"},
+                "tables": {"table": "dataset_1.table", "table2": "dataset_2.table2"},
+            }]
+    ),
+    "tests/basic_queries/query_join_2.sql": OrderedDict(
+        __query__=[{
+            "join": [
+                (["ab", "chantier_id"], ["c", "id"]),
+                (["f", "PES_Chantier__c"], ["c", "id"]),
+                (["p", "Facture__c"], ["f", "id"]),
+                (["t", "Dossier__c"], ["c", "id"]),
+                (["a", "id"], ["c", "PES_Compte_associe__c"]),
+                (["o", "id"], ["t", "IdOpportuniteSherlock__c"]),
+                (["o", "solution_id"], ["s", "id"]),
+                (["s", "vulcain_type_travaux_id"], ["tt", "id"]),
+                (["devis_post_vt_envoye", "PES_Chantier__c"], ["c", "id"]),
+                (["devis_post_vt_signe", "PES_Chantier__c"], ["c", "id"]),
+            ],
+            "select": {
+                "chantier_devis_montant": "function()",
+                "chantier_id": "c.id",
+                "chantier_statut": "c.PES_Statut_Chantier__c",
+                "chantier_vt_date_commande": "c.Date_de_la_commande_VT__c",
+                "chantier_vt_date_realisation": "c.PES_Date_Visite_Technique__c",
+            },
+            "tables": {
+                "a": "DW_SALESFORCE_PES.account",
+                "ab": "DW_SALESFORCE_PES.chantier_history_abandon_iso_chauffage",
+                "c": "DW_SALESFORCE_PES.pes_chantier",
+                "devis_post_vt_envoye": "chantier_isolation_devis_post_vt_envoye",
+                "devis_post_vt_signe": "chantier_isolation_devis_post_vt_signe",
+                "f": "DW_SALESFORCE_PES.pes_facture",
+                "o": "DW_SHERLOCK.opportunites",
+                "p": "DW_SALESFORCE_PES.pes_paiement",
+                "s": "DW_SHERLOCK.solutions",
+                "t": "DW_SALESFORCE_PES.temoin",
+                "tt": "DW_VULCAIN.types_travaux",
+            },
+        }]
+    ),
+    "tests/basic_queries/query_join_alias.sql": OrderedDict(
+        __query__=[{
+            "join": [(["table1", "c1"], ["table2", "c2"])],
+            "select": {"*": "*", "col_1": "col_1", "name_2": "col_2"},
+            "tables": {"alias_T1": "dataset_1.table", "table2": "dataset_2.table2"},
+        }]
+    ),
+    "tests/basic_queries/query_join_alias_2.sql": OrderedDict(
+        __query__=[{
+            "join": [(["table1", "c1"], ["table2", "c2"])],
+            "select": {"*": "*", "col_1": "col_1", "name_2": "col_2"},
+            "tables": {"alias_T1": "dataset_1.table", "table2": "dataset_2.table2"},
+        }]
+    ),
+    "tests/basic_queries/query_where.sql": OrderedDict(
+        __query__=[{
+            "join": [],
+            "select": {"*": "*"},
+            "tables": {"agents_details_recording": "DW_DIABOLO.agents_details_recording"},
+        }]
+    ),
+}
+
+
+ctes = {
+    "tests/simple_queries/cte_1.sql": OrderedDict(
+        cte_name=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table1": "dataset.table1"},
+            "join": [],
+        }],
+        __query__=[{
+            "select": {
+                "col_2": "col_1",
+            },
+            "tables": {"cte_name": "cte_name"},
+            "join": [],
+        }],
+    ),
+    "tests/simple_queries/cte_2.sql": OrderedDict(
+        cte_name=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table1": "dataset.table1"},
+            "join": [],
+        }],
+        cte_2=[{
+            "select": {"col_2": "col_2", "col_3": "col_3"},
+            "tables": {"t2": "dataset.t2", "t3": "dataset.table"},
+            "join": [(["t2", "id"], ["t3", "t2_id"])],
+        }],
+        __query__=[{
+            "select": {
+                "col_1": "col_1",
+                "col_2": "col_2",
+                "col_3": "col_3",
+            },
+            "tables": {"cte_name": "cte_name", "cte_2": "cte_2"},
+            "join": [(["cte_name", "col_1"], ["cte_2", "col_3"])],
+        }],
+    ),
+    "tests/simple_queries/cte_3.sql": OrderedDict(
+        call_tmp=[{
+            "select": {
+                "call_date": "function()",
+                "call_id": "a.id",
+                "code_cloture": "ac.code_cloture_nom",
+                "contact_phone": "function()",
+                "date_debut": "a.date_debut",
+                "duree": "a.duree",
+                "is_last_call_day": "function()",
+                "nom_file": "a.queue_nom",
+                "nom_service": "a.service_nom",
+                "resultat_appel": "a.resultat",
+                "service_telephone": "a.service_telephone",
+                "type_cloture": "ac.code_cloture_statut",
+            },
+            "tables": {"a": "EFFY_STORE.appels", "ac": "EFFY_STORE.appels_codes_cloture"},
+            "join": [
+                (["a", "id"], ["ac", "appel_id"])
+            ],
+        }],
+        call_temoins=[{
+            "select": {
+                "call_date": "ct.call_date",
+                "call_id": "ct.call_id",
+                "code_cloture": "ct.code_cloture",
+                "contact_phone": "ct.contact_phone",
+                "date_debut": "ct.date_debut",
+                "duree": "ct.duree",
+                "nom_file": "ct.nom_file",
+                "nom_service": "ct.nom_service",
+                "opportunite_gagnee_chaudiere": "o.opportunite_gagnee_chaudiere",
+                "opportunite_gagnee_combles": "o.opportunite_gagnee_combles",
+                "opportunite_gagnee_iso_1e": "o.opportunite_gagnee_iso_1e",
+                "opportunite_gagnee_iso_rac": "o.opportunite_gagnee_iso_rac",
+                "opportunite_gagnee_ite": "o.opportunite_gagnee_ite",
+                "opportunite_gagnee_mer": "o.opportunite_gagnee_mer",
+                "opportunite_gagnee_pac": "o.opportunite_gagnee_pac",
+                "opportunite_gagnee_pac_air_air": "o.opportunite_gagnee_pac_air_air",
+                "opportunite_gagnee_prime_seule": "o.opportunite_gagnee_prime_seule",
+                "opportunite_gagnee_rampants": "o.opportunite_gagnee_rampants",
+                "opportunite_gagnee_recrutement_pro": "o.opportunite_gagnee_recrutement_pro",
+                "opportunite_gagnee_solaire": "o.opportunite_gagnee_solaire",
+                "opportunite_gagnee_sols": "o.opportunite_gagnee_sols",
+                "piste_id": "p.id",
+                "resultat_appel": "ct.resultat_appel",
+                "service_telephone": "ct.service_telephone",
+                "type_cloture": "ct.type_cloture",
+            },
+            "tables": {
+                "c": "EFFY_STORE.clients",
+                "ct": "call_tmp",
+                "o": "EFFY_STORE.opportunites",
+                "p": "EFFY_STORE.pistes",
+            },
+            "join": [
+                (["ct", "contact_phone"], ["c", "telephone1"]),
+                (["p", "api_user_id"], ["c", "api_user_id"]),
+                (["o", "piste_id"], ["p", "id"]),
+            ],
+        }],
+        __query__=[{
+            "select": {
+                "Nom_Service": "t.Nom_Service",
+                "call_date": "t.call_date",
+                "code_cloture": "t.code_cloture",
+                "nb_calls": "function()",
+                "nb_pistes_creees": "function()",
+                "nb_temoin_chaudiere": "function()",
+                "nb_temoin_combles": "function()",
+                "nb_temoin_iso1e": "function()",
+                "nb_temoin_isorac": "function()",
+                "nb_temoin_ite": "function()",
+                "nb_temoin_mer": "function()",
+                "nb_temoin_pac": "function()",
+                "nb_temoin_pacaa": "function()",
+                "nb_temoin_prime_seule": "function()",
+                "nb_temoin_rampants": "function()",
+                "nb_temoin_solaire": "function()",
+                "nb_temoin_sols": "function()",
+                "nom_file": "t.nom_file",
+                "resultat_appel": "t.resultat_appel",
+                "service_telephone": "t.service_telephone",
+                "sum_duree_call": "function()",
+                "type_cloture": "t.type_cloture",
+            },
+            "tables": {"t": "call_temoins"},
+            "join": [],
+        }],
+    ),
+}
 
 
 union_all = {
-    """
-        SELECT col_1
-        FROM dataset.table
-
-        UNION ALL
-
-        SELECT col_1
-        FROM dataset.table
-    """: OrderedDict(
+    "tests/simple_queries/union_all_1.sql": OrderedDict(
         __query__=[{
             "select": {"col_1": "col_1"},
             "tables": {"table": "dataset.table"},
@@ -32,21 +268,7 @@ union_all = {
             "join": [],
         }],
     ),
-    """
-        with cte_1 as (
-            /* ###########     sub query 1    ############## */
-            SELECT col_1
-            FROM dataset.table
-    
-            UNION ALL
-    
-            /* ###########     sub query 2    ############## */
-            SELECT col_1
-            FROM dataset.table
-        )
-        select col_1 as name_1
-        from cte_1
-    """: OrderedDict(
+    "tests/simple_queries/union_all_2.sql": OrderedDict(
         cte_1=[{
             "select": {"col_1": "col_1"},
             "tables": {"table": "dataset.table"},
@@ -62,24 +284,7 @@ union_all = {
             "join": [],
         }]
     ),
-    """
-        with cte_1 as (
-            SELECT col_1
-            FROM dataset.table
-    
-            UNION ALL
-    
-            SELECT col_1
-            FROM dataset.table
-        )
-        select col_1 as name_1
-        from cte_1
-        
-        UNION ALL
-        
-        select col_1 as name_1
-        from cte_1
-    """: OrderedDict(
+    "tests/simple_queries/union_all_3.sql": OrderedDict(
         cte_1=[{
             "select": {"col_1": "col_1"},
             "tables": {"table": "dataset.table"},
@@ -99,7 +304,40 @@ union_all = {
             "join": [],
         }]
     ),
-    "tests/sql_test_files/b2c_demandes.sql": OrderedDict(
+}
+
+
+complex_queries = {
+    # "tests/complex_queries/appel_code_cloture.sql": OrderedDict(
+    #     __query__=[{
+    #         'select': {
+    #             'code_cloture_id': 'function()',
+    #             'appel_id': 'callId',
+    #             'operateur_id': 'o.id',
+    #             'agent_id': 'function()',
+    #             'agent_nom': 'function()',
+    #             'user_groupe_ids': 'function()',
+    #             'user_groupe_noms': 'function()',
+    #             'code_cloture_statut': 'function()',
+    #             'code_cloture_path': 'function()',
+    #             'code_cloture_nom': 'function()',
+    #             'code_cloture_comment': 'function()',
+    #             'duree': 'function()',
+    #             'cree_a': 'function()'
+    #         },
+    #         'tables': {
+    #             'cdr': 'DW_DIABOLO.calls_details_recording',
+    #             'u': 'DW_DIABOLO.public_users',
+    #             'o': 'DW_SHERLOCK.operateurs',
+    #             # "wrapups": "UNNEST(...)"
+    #         },
+    #         'join': [
+    #             (["cdr", "callWrapups_agentId"], ["u", "id"]),
+    #             (["u", "email"], ["o", "email"]),
+    #         ]
+    #     }]
+    # ),
+    "tests/complex_queries/b2c_demandes.sql": OrderedDict(
         existing_business_tmp=[{
             "join": [
                 (["opp", "piste_id"], ["piste", "id"]),
@@ -402,170 +640,55 @@ union_all = {
             },
         }],
     ),
+    # "tests/complex_queries/email_campaigns.sql": OrderedDict(
+    #     last_state=[{
+    #         "select": {"id": "id", "extract_date": "function()"},
+    #         "tables": {"email_campaigns_raw": "ODS_HUBSPOT.email_campaigns_raw"},
+    #         "join": [],
+    #     }],
+    #     __query__=[{
+    #         'select': {
+    #             'id': 'function()',
+    #             'app_id': 'function()',
+    #             'app_name': 'ec.appName',
+    #             'content_id': 'function()',
+    #             'subject': 'ec.subject',
+    #             'name': 'ec.name',
+    #             'counters': 'ec.counters',
+    #             'last_processing_finished_at': 'function()',
+    #             'last_processing_started_at': 'function()',
+    #             'last_processing_state_change_at': 'function()',
+    #             'num_included': 'function()',
+    #             'processing_state': 'ec.processingState',
+    #             'scheduled_at': 'function()',
+    #             'type': 'ec.type'
+    #         },
+    #         'tables': {
+    #             'ec': 'ODS_HUBSPOT.email_campaigns_raw',
+    #             'last_state': 'last_state',
+    #         },
+    #         'join': [
+    #             (["ec", "id"], ["last_state", "id"]),
+    #             (["ec", "extract_date"], ["last_state", "extract_date"]),
+    #         ]
+    #     }]
+    # ),
 }
 
-ctes = {
-    "tests/sql_test_files/cte_1.sql": OrderedDict(
-        cte_name=[{
-            "select": {"col_1": "col_1"},
-            "tables": {"table1": "dataset.table1"},
-            "join": [],
-        }],
-        __query__=[{
-            "select": {
-                "col_2": "col_1",
-            },
-            "tables": {"cte_name": "cte_name"},
-            "join": [],
-        }],
-    ),
-    "tests/sql_test_files/cte_2.sql": OrderedDict(
-        cte_name=[{
-            "select": {"col_1": "col_1"},
-            "tables": {"table1": "dataset.table1"},
-            "join": [],
-        }],
-        cte_2=[{
-            "select": {"col_2": "col_2", "col_3": "col_3"},
-            "tables": {"t2": "dataset.t2", "t3": "dataset.table"},
-            "join": [(["t2", "id"], ["t3", "t2_id"])],
-        }],
-        __query__=[{
-            "select": {
-                "col_1": "col_1",
-                "col_2": "col_2",
-                "col_3": "col_3",
-            },
-            "tables": {"cte_name": "cte_name", "cte_2": "cte_2"},
-            "join": [(["cte_name", "col_1"], ["cte_2", "col_3"])],
-        }],
-    ),
-    "tests/sql_test_files/cte_3.sql": OrderedDict(
-        call_tmp=[{
-            "select": {
-                "call_date": "function()",
-                "call_id": "a.id",
-                "code_cloture": "ac.code_cloture_nom",
-                "contact_phone": "function()",
-                "date_debut": "a.date_debut",
-                "duree": "a.duree",
-                "is_last_call_day": "function()",
-                "nom_file": "a.queue_nom",
-                "nom_service": "a.service_nom",
-                "resultat_appel": "a.resultat",
-                "service_telephone": "a.service_telephone",
-                "type_cloture": "ac.code_cloture_statut",
-            },
-            "tables": {"a": "EFFY_STORE.appels", "ac": "EFFY_STORE.appels_codes_cloture"},
-            "join": [
-                (["a", "id"], ["ac", "appel_id"])
-            ],
-        }],
-        call_temoins=[{
-            "select": {
-                "call_date": "ct.call_date",
-                "call_id": "ct.call_id",
-                "code_cloture": "ct.code_cloture",
-                "contact_phone": "ct.contact_phone",
-                "date_debut": "ct.date_debut",
-                "duree": "ct.duree",
-                "nom_file": "ct.nom_file",
-                "nom_service": "ct.nom_service",
-                "opportunite_gagnee_chaudiere": "o.opportunite_gagnee_chaudiere",
-                "opportunite_gagnee_combles": "o.opportunite_gagnee_combles",
-                "opportunite_gagnee_iso_1e": "o.opportunite_gagnee_iso_1e",
-                "opportunite_gagnee_iso_rac": "o.opportunite_gagnee_iso_rac",
-                "opportunite_gagnee_ite": "o.opportunite_gagnee_ite",
-                "opportunite_gagnee_mer": "o.opportunite_gagnee_mer",
-                "opportunite_gagnee_pac": "o.opportunite_gagnee_pac",
-                "opportunite_gagnee_pac_air_air": "o.opportunite_gagnee_pac_air_air",
-                "opportunite_gagnee_prime_seule": "o.opportunite_gagnee_prime_seule",
-                "opportunite_gagnee_rampants": "o.opportunite_gagnee_rampants",
-                "opportunite_gagnee_recrutement_pro": "o.opportunite_gagnee_recrutement_pro",
-                "opportunite_gagnee_solaire": "o.opportunite_gagnee_solaire",
-                "opportunite_gagnee_sols": "o.opportunite_gagnee_sols",
-                "piste_id": "p.id",
-                "resultat_appel": "ct.resultat_appel",
-                "service_telephone": "ct.service_telephone",
-                "type_cloture": "ct.type_cloture",
-            },
-            "tables": {
-                "c": "EFFY_STORE.clients",
-                "ct": "call_tmp",
-                "o": "EFFY_STORE.opportunites",
-                "p": "EFFY_STORE.pistes",
-            },
-            "join": [
-                (["ct", "contact_phone"], ["c", "telephone1"]),
-                (["p", "api_user_id"], ["c", "api_user_id"]),
-                (["o", "piste_id"], ["p", "id"]),
-            ],
-        }],
-        __query__=[{
-            "select": {
-                "Nom_Service": "t.Nom_Service",
-                "call_date": "t.call_date",
-                "code_cloture": "t.code_cloture",
-                "nb_calls": "function()",
-                "nb_pistes_creees": "function()",
-                "nb_temoin_chaudiere": "function()",
-                "nb_temoin_combles": "function()",
-                "nb_temoin_iso1e": "function()",
-                "nb_temoin_isorac": "function()",
-                "nb_temoin_ite": "function()",
-                "nb_temoin_mer": "function()",
-                "nb_temoin_pac": "function()",
-                "nb_temoin_pacaa": "function()",
-                "nb_temoin_prime_seule": "function()",
-                "nb_temoin_rampants": "function()",
-                "nb_temoin_solaire": "function()",
-                "nb_temoin_sols": "function()",
-                "nom_file": "t.nom_file",
-                "resultat_appel": "t.resultat_appel",
-                "service_telephone": "t.service_telephone",
-                "sum_duree_call": "function()",
-                "type_cloture": "t.type_cloture",
-            },
-            "tables": {"t": "call_temoins"},
-            "join": [],
-        }],
-    ),
-}
 
-unnest_queries = {
-    "tests/sql_test_files/appel_code_cloture.sql": OrderedDict(
-        __query__=[{
-            'select': {
-                'code_cloture_id': 'function()',
-                'appel_id': 'callId',
-                'operateur_id': 'o.id',
-                'agent_id': 'function()',
-                'agent_nom': 'function()',
-                'user_groupe_ids': 'function()',
-                'user_groupe_noms': 'function()',
-                'code_cloture_statut': 'function()',
-                'code_cloture_path': 'function()',
-                'code_cloture_nom': 'function()',
-                'code_cloture_comment': 'function()',
-                'duree': 'function()',
-                'cree_a': 'function()'
-            },
-            'tables': {
-                'cdr': 'DW_DIABOLO.calls_details_recording',
-                'u': 'DW_DIABOLO.public_users',
-                'o': 'DW_SHERLOCK.operateurs',
-                # "wrapups": "UNNEST(...)"
-            },
-            'join': [
-                (["cdr", "callWrapups_agentId"], ["u", "id"]),
-                (["u", "email"], ["o", "email"]),
-            ]
-        }]
-    )
-}
+complex_sql_files = [
+    file_path
+    for file_path in Path("tests/complex_queries").glob("*.sql")
+    if file_path.name not in ["appel_code_cloture.sql"]
+]
 
 
 class TestEachSql(TestCase):
+    @parameterized.expand(simple_queries.items())
+    def test_basic_queries(self, file_name, expected):
+        parsing_by_cte = read_and_parse_sql_file(file_name)
+        self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
+
     @parameterized.expand(ctes.items())
     def test_parse_cte(self, query, expected: Dict):
         parsing_by_cte = read_and_parse_sql_file(query)
@@ -587,3 +710,19 @@ class TestEachSql(TestCase):
         pprint(parsing_by_cte)
 
         self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
+
+    @parameterized.expand(complex_queries.items())
+    def test_complex_queries(self, file_path_or_query, expected):
+        parsing_by_cte = read_and_parse_sql_file(file_path_or_query)
+        print(file_path_or_query)
+        print("Expecting")
+        pprint(expected)
+        print("actual")
+        pprint(parsing_by_cte)
+
+        self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
+
+    @parameterized.expand(complex_queries)
+    def test_complex_queries(self, file_path: Path):
+        parsing_by_cte = read_and_parse_sql_file(file_path)
+        self.assertIsNotNone(parsing_by_cte)

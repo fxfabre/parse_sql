@@ -3,6 +3,8 @@ import os.path
 from typing import Dict, List
 
 from .models import ColumnName, Query, TableId
+from itertools import product
+from collections import OrderedDict, Counter
 
 bq_schema = None
 
@@ -84,15 +86,64 @@ def resolve_table_alias(table_alias, col_name, parsing_by_cte):
             cte_name=table_alias, parsing_by_cte=parsing_by_cte
         )
         if new_col_name in available_cols:
-            print("Unable to find FQDN for col", select_cols[col_name])
-            print("Guessing it is", available_cols[new_col_name])
+            print(f"  Guessing {table_alias}.{select_cols[col_name]}", "is from", available_cols[new_col_name])
             return ":".join((available_cols[new_col_name], new_col_name))
 
-    print(f"ERROR : Unable to resolve col {table_alias}.{col_name}")
+    print(f"  ERROR : Unable to resolve col {table_alias}.{col_name}")
     return ""
 
 
-def extract_all_joins_from_file(parsing_by_cte: Dict[str, Query]):
+def extract_all_joins_from_file(parsing_by_cte_with_unions: Dict[str, List[Query]]) -> Counter:
+    """
+    parsing_by_cte = OrderedDict(
+        cte_1=[{
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }, {
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        }],
+        __query__=[{
+            "select": {"name_1": "col_1"},
+            "tables": {"cte_1": "cte_1"},
+            "join": [],
+        }]
+    ),
+    """
+    all_conditions = []
+    cte_names = list(parsing_by_cte_with_unions.keys())
+    queries_combinations = list(product(*list(parsing_by_cte_with_unions.values())))
+
+    nb_combinations = len(queries_combinations)
+    if nb_combinations > 30:
+        raise Exception("Too many combinations in file. Skip")
+
+    for queries in queries_combinations:
+        parsing_by_cte = OrderedDict(zip(cte_names, queries))
+        queries_conditions = extract_all_joins_from_query(parsing_by_cte)
+        all_conditions.extend(queries_conditions)
+
+    counter = Counter(all_conditions)
+    return Counter({k: v / nb_combinations for k, v in counter.items()})
+
+
+def extract_all_joins_from_query(parsing_by_cte: Dict[str, Query]):
+    """
+    parsing_by_cte = OrderedDict(
+        cte_1={
+            "select": {"col_1": "col_1"},
+            "tables": {"table": "dataset.table"},
+            "join": [],
+        },
+        __query__={
+            "select": {"name_1": "col_1"},
+            "tables": {"cte_1": "cte_1"},
+            "join": [],
+        }
+    ),
+    """
     all_conditions = []
     for cte_name, cte_query in parsing_by_cte.items():
         tables_alias = cte_query["tables"]
@@ -113,6 +164,6 @@ def extract_all_joins_from_file(parsing_by_cte: Dict[str, Query]):
             )
 
             if left and right and left.lower() != right.lower():
-                all_conditions.extend([f"{left} = {right}", f"{right} = {left}"])
+                all_conditions.append(" = ".join(sorted([left, right], key=str.lower)))
 
     return all_conditions
