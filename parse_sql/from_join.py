@@ -88,4 +88,4 @@ def read_table_ids(table_exp):
     if not table_alias:
         table_alias = table_name.split(".").pop()
 
-    return table_name, table_alias
+    return table_name.lower(), table_alias.lower()

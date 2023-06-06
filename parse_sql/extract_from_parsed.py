@@ -13,11 +13,9 @@ def get_bq_schema_with_cols() -> Dict[TableId, List[ColumnName]]:
     """
     returns { "dataset.table_name": [col1, ..., coln] }
     """
-    bq_schema_name = "bq_schema.json"
-    if not os.path.exists(bq_schema_name):
-        bq_schema_name = "../" + bq_schema_name
+    bq_schema_path = os.path.join(os.getenv("DATA_DIR"), "bq_prod", "bq_schema.json")
 
-    with open(bq_schema_name, "r") as f:
+    with open(bq_schema_path, "r") as f:
         return {
             k: [c["name"] for c in table_infos["schema"]]
             for k, table_infos in json.load(f).items()
@@ -30,8 +28,11 @@ def get_available_cols_names(cte_name: str, parsing_by_cte: Dict[str, Query]):
     Return { col_name: table_id}
     eg : {'civilite': 'EFFY_STORE.clients', 'sous_type_travaux': 'EFFY_STORE.opportunites'}
     """
+    global bq_schema
+    if bq_schema is None:
+        bq_schema = get_bq_schema_with_cols()
+
     cte_query = parsing_by_cte[cte_name]
-    bq_schema = get_bq_schema_with_cols()
 
     # split tables in BQ & tables from cte in same file
     tables_alias: dict = cte_query["tables"]
