@@ -1,0 +1,107 @@
+"""
+Require first to generate file "joins_frequency.csv"
+& grep -v "Function()" joins_frequency.csv > joins_frequency_no_func.csv
+
+Generate a list of all identical fields in different tables
+eg :
+ - pistes.id = opportunity.piste_id = calls.piste_id
+ - table_1.project_id = table_2.project_id
+"""
+import os
+from collections import Counter
+from pprint import pprint
+
+import pandas as pd
+
+
+def graph_field_joins():
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "bq_prod", "joins_frequency_no_func.csv")
+    df_raw = pd.read_csv(csv_file_path)
+
+    df_raw = df_raw.assign(
+        left=lambda _df: _df["join_condition"].map(
+            lambda join: join.split("=")[0].strip().lower()
+        ),
+        right=lambda _df: _df["join_condition"].map(
+            lambda join: join.split("=")[1].strip().lower()
+        ),
+    )
+    # rm tmp tables
+    df_raw = df_raw[df_raw["left"].map(lambda node: "." in node)]
+    df_raw = df_raw[df_raw["right"].map(lambda node: "." in node)]
+
+    df_raw["left"] = df_raw["left"].map(
+        lambda col: col.split(".")[0].upper() + "." + col.split(".")[1].lower()
+    )
+    df_raw["right"] = df_raw["right"].map(
+        lambda col: col.split(".")[0].upper() + "." + col.split(".")[1].lower()
+    )
+
+    df_joins = pd.concat([
+        df_raw.rename(columns={"left": "0", "right": "1"}),
+        df_raw.rename(columns={"right": "0", "left": "1"})
+    ], ignore_index=True)[["0", "1"]].rename(columns={"0": "left", "1": "right"})
+
+    clustered_keys = cluster_same_fields(df_joins)
+    pprint(clustered_keys)
+
+    with open("column_joins.txt", "w+") as f:
+        for column_names in sorted(clustered_keys.values(), key=len, reverse=True):
+            f.write("\n".join(map(format_col_name, sorted(column_names))) + "\n\n")
+
+
+def cluster_same_fields(df_joins):
+    dict_joins = df_joins.groupby("left").agg({"right": set}).to_dict()["right"]
+
+    nb_loop = 0
+    while nb_loop < 1000:
+        nb_loop += 1
+
+        dict_joins = {
+            key: set(values) | {key}
+            for key, values in list(dict_joins.items())
+        }
+
+        counter = Counter(
+            item
+            for k, v in dict_joins.items()
+            for item in v
+        )
+        table_name, count = counter.most_common(1)[0]
+
+        if count <= 1:
+            break
+
+        keys = [
+            key
+            for key, values in dict_joins.items()
+            if table_name in values
+        ]
+
+        print("with", table_name, "merge :")
+        #pprint(keys)
+
+        all_columns = set()
+        for key in set(keys):
+            pprint(dict_joins.get(key))
+            all_columns = all_columns | dict_joins.pop(key)
+        dict_joins[table_name] = all_columns
+
+        print("=============\nFinal group :")
+        pprint(sorted(all_columns))
+        print()
+
+    return dict_joins
+
+
+def format_col_name(col_name: str):
+    return col_name
+    dataset = col_name.split(".")[0]
+    col_name = col_name.split(".")[1]
+    table_name = col_name.split(":")[0]
+    field_name = col_name.split(":")[1]
+    return f"{dataset:<30}{table_name:<30}{field_name}"
+
+
+if __name__ == '__main__':
+    graph_field_joins()
