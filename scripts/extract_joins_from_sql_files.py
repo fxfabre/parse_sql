@@ -5,7 +5,6 @@ First script : read SQL files & generate "joins_frequency.csv"
 import json
 import os
 import sys
-from collections import Counter
 from pathlib import Path
 from pprint import pprint
 
@@ -38,7 +37,7 @@ def extract_join_from_all_files(dag_dir: Path):
                 if file_name.endswith(".sql")
             )
 
-    c = Counter()
+    join_conditions = []
     is_parsing_success = []
     files = [dag_dir] if dag_dir.is_file() else iter_files(dag_dir)
     for file_path in files:
@@ -46,19 +45,31 @@ def extract_join_from_all_files(dag_dir: Path):
         try:
             parsing_by_cte = read_and_parse_sql_file(file_path)
             counter_for_file = extract_all_joins_from_file(parsing_by_cte)
-            c.update(counter_for_file)
+            join_conditions.extend(
+                (join_condition, frequency, file_path.stem)
+                for join_condition, frequency in counter_for_file.items()
+            )
             is_parsing_success.append(True)
         except Exception as e:
             print("  Failed :", e)
             is_parsing_success.append(False)
 
-    print(f"parsing success : {sum(is_parsing_success)} / {len(is_parsing_success)}")
-    pprint(c.most_common(30))
+    df_join_conditions = pd.DataFrame(
+        join_conditions, columns=["join_condition", "frequency", "file_name"]
+    )
 
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "bq_prod", "joins_frequency.csv")
-    pd.DataFrame(
-        c.items(), columns=["join_condition", "frequency"]
-    ).sort_values("frequency", ascending=False).to_csv(csv_file_path, index=False)
+    print(f"parsing success : {sum(is_parsing_success)} / {len(is_parsing_success)}")
+    pprint(
+        df_join_conditions[["join_condition", "frequency"]]
+        .groupby("join_condition", as_index=False)
+        .agg({"frequency": sum})
+        .sort_values("frequency", ascending=False)
+        .head(30)
+        .to_dict("records")
+    )
+
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "bq_prod", "joins_frequency.csv")
+    df_join_conditions.sort_values("frequency", ascending=False).to_csv(csv_file_path, index=False)
 
 
 if __name__ == '__main__':

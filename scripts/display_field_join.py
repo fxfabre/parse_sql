@@ -15,7 +15,7 @@ import pandas as pd
 
 
 def graph_field_joins():
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "bq_prod", "joins_frequency_no_func.csv")
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "bq_prod", "joins_frequency_no_func.csv")
     df_raw = pd.read_csv(csv_file_path)
 
     df_raw = df_raw.assign(
@@ -46,17 +46,19 @@ def graph_field_joins():
     pprint(clustered_keys)
 
     with open("column_joins.txt", "w+") as f:
-        for column_names in sorted(clustered_keys.values(), key=len, reverse=True):
-            f.write("\n".join(map(format_col_name, sorted(column_names))) + "\n\n")
+        for table_column_names in sorted(clustered_keys.values(), key=len, reverse=True):
+            cols = (col.split(":")[0] for col in table_column_names)
+            lines = [
+                Counter(col for col in cols if col.lower() != "id").most_common(1)[0][0]
+            ]
+            lines.extend(map(format_col_name, sorted(table_column_names)))
+            f.write("### " + "\n> ".join(lines) + "\n\n")
 
 
 def cluster_same_fields(df_joins):
     dict_joins = df_joins.groupby("left").agg({"right": set}).to_dict()["right"]
 
-    nb_loop = 0
-    while nb_loop < 1000:
-        nb_loop += 1
-
+    for nb_loop in range(1000):
         dict_joins = {
             key: set(values) | {key}
             for key, values in list(dict_joins.items())
@@ -80,6 +82,18 @@ def cluster_same_fields(df_joins):
 
         print("with", table_name, "merge :")
         #pprint(keys)
+
+        # Find errors
+        expected = {"EFFY_STORE.opportunites:id", "effy_store.pistes:id"}
+        for k, v in dict_joins.items():
+            if len(v) > 3:
+                pprint(list(v))
+                exit(0)
+            intersect = expected.intersection(x.lower() for x in v)
+            if len(expected) == intersect:
+                print("Found", intersect)
+                exit(0)
+        #############
 
         all_columns = set()
         for key in set(keys):
