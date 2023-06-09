@@ -12,7 +12,7 @@ import sys
 
 
 def graph_table_joins(table_prefix=""):
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "bq_prod", "joins_frequency_no_func.csv")
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency_no_func.csv")
     df_raw = pd.read_csv(csv_file_path)
 
     df_raw = df_raw.assign(

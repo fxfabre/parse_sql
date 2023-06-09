@@ -68,7 +68,7 @@ def extract_join_from_all_files(dag_dir: Path):
         .to_dict("records")
     )
 
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "bq_prod", "joins_frequency.csv")
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
     os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
     df_join_conditions.sort_values("frequency", ascending=False).to_csv(csv_file_path, index=False)
 

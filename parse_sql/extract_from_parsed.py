@@ -13,7 +13,7 @@ def get_bq_schema_with_cols() -> Dict[TableId, List[ColumnName]]:
     """
     returns { "dataset.table_name": [col1, ..., coln] }
     """
-    bq_schema_path = os.path.join(os.getenv("DATA_DIR"), "bq_prod", "bq_schema.json")
+    bq_schema_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "bq_schema.json")
 
     with open(bq_schema_path, "r") as f:
         return {
