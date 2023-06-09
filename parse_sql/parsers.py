@@ -33,7 +33,7 @@ def parse_sql_file(sql_nodes) -> OrderedDict:
     for cte in ctes:
         cte_name = get(cte, ["naked_identifier"])
         bracketed = get(cte, ["bracketed"])
-        parsing_by_cte[cte_name] = parse_query(bracketed)
+        parsing_by_cte[cte_name.lower()] = parse_query(bracketed)
 
     parsing_by_cte["__query__"] = parse_query(sql_nodes)
     return parsing_by_cte
