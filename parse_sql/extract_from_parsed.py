@@ -25,7 +25,7 @@ def get_bq_schema_with_cols() -> Dict[TableId, List[ColumnName]]:
 # replace_alias_in_cte_query
 def get_available_cols_names(cte_name: str, parsing_by_cte: Dict[str, Query]):
     """
-    Return { col_name: table_id}
+    Return { col_name: table_id }
     eg : {'civilite': 'EFFY_STORE.clients', 'sous_type_travaux': 'EFFY_STORE.opportunites'}
     """
     global bq_schema
@@ -63,13 +63,13 @@ def resolve_table_alias(table_alias, col_name, parsing_by_cte):
     if table_alias in bq_schema:
         return ":".join((table_alias, col_name))
     if table_alias not in parsing_by_cte:
-        print("ERROR : Unable to find table alias", table_alias)
+        print("  Unable to find table alias", table_alias)
         return ""
 
     cte_query = parsing_by_cte[table_alias]
     select_cols = cte_query["select"]
     if col_name not in select_cols:
-        print("ERROR : Unable to find", col_name, "in cte", table_alias)
+        print("  Unable to find", col_name, "in cte", table_alias)
         return ""
     col_source = select_cols[col_name].split(".")
 
@@ -90,7 +90,7 @@ def resolve_table_alias(table_alias, col_name, parsing_by_cte):
             print(f"  Guessing {table_alias}.{select_cols[col_name]}", "is from", available_cols[new_col_name])
             return ":".join((available_cols[new_col_name], new_col_name))
 
-    print(f"  ERROR : Unable to resolve col {table_alias}.{col_name}")
+    print(f"  Unable to resolve col {table_alias}.{col_name}")
     return ""
 
 
