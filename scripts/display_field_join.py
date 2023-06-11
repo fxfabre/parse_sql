@@ -10,24 +10,28 @@ eg :
 import os
 from collections import Counter
 from pprint import pprint
-
-import pandas as pd
 from typing import List
+
+import graphviz
+import pandas as pd
 
 
 def graph_field_joins():
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
-    df_raw = pd.read_csv(csv_file_path)
+    df_raw = pd.read_csv(
+        os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv"),
+        usecols=["file_name", "left_table", "left_col", "right_table", "right_col"]
+    ).assign(
+        left=lambda df: df["left_table"] + " " + df["left_col"],
+        right=lambda df: df["right_table"] + " " + df["right_col"],
+    )[["file_name", "left", "right"]]
 
     df_joins = pd.concat([
         df_raw.rename(columns={"left": "0", "right": "1"}),
         df_raw.rename(columns={"right": "0", "left": "1"})
     ], ignore_index=True)[["0", "1"]].rename(columns={"0": "left", "1": "right"})
 
-    clustered_keys = cluster_same_fields(df_joins)
-    pprint(clustered_keys)
-
     # Save list of clusters, ready to paste into confluence
+    clustered_keys = cluster_same_fields(df_joins)
     with open("column_joins.txt", "w+") as f:
         for table_column_names in sorted(clustered_keys, key=len, reverse=True):
             cols = (col.split(":")[0] for col in table_column_names)
@@ -44,7 +48,21 @@ def graph_field_joins():
         for table_id in table_ids
     }
 
-    df_raw["cluster_id"] = df_raw["left_table"].map(clusters.get)
+    df_raw["cluster_id"] = df_raw["left"].map(clusters.get)
+    df_raw.to_csv("clustered.csv", index=False)
+
+    # Generate graphs:
+    for cluster_id, sub_df in df_raw.query("cluster_id == 2").groupby("cluster_id"):
+        df_cluster = sub_df.groupby(["left", "right"], as_index=False).agg({"file_name": "\n".join})
+        pprint(df_cluster)
+
+        f = graphviz.Digraph('bigquery', filename=f"cluster_columns_{cluster_id}.gv")
+        for node_name in set(df_cluster["left"]) | set(df_cluster["right"]):
+            f.node(node_name)
+        for idx, row in df_cluster.iterrows():
+            print("edge", row["left"], row["right"])
+            f.edge(row["left"], row["right"], row["file_name"])
+        f.view()
 
 
 def cluster_same_fields(df_joins) -> List[set]:
@@ -72,30 +90,11 @@ def cluster_same_fields(df_joins) -> List[set]:
             if table_name in values
         ]
 
-        print("with", table_name, "merge :")
-        #pprint(keys)
-
-        # Find errors
-        expected = {"EFFY_STORE.opportunites:id", "effy_store.pistes:id"}
-        for k, v in dict_joins.items():
-            if len(v) > 3:
-                pprint(list(v))
-                exit(0)
-            intersect = expected.intersection(x.lower() for x in v)
-            if len(expected) == intersect:
-                print("Found", intersect)
-                exit(0)
-        #############
-
         all_columns = set()
         for key in set(keys):
             pprint(dict_joins.get(key))
             all_columns = all_columns | dict_joins.pop(key)
         dict_joins[table_name] = all_columns
-
-        print("=============\nFinal group :")
-        pprint(sorted(all_columns))
-        print()
 
     return list(dict_joins.values())
 

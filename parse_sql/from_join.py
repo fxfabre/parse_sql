@@ -15,9 +15,9 @@ def extract_from_join(sql_nodes):
             # File has implicit cross join, with ", unnest(...)"
             # Should raise an error, parsing is incomplete
             for _table_from, _table_alias in zip(table_from, table_alias):
-                all_from_tables[_table_alias] = _table_from
+                all_from_tables[_table_alias.lower()] = _table_from
         else:
-            all_from_tables[table_alias] = table_from
+            all_from_tables[table_alias.lower()] = table_from
 
         join_exp = get(table_exp, ["join_on_condition", "expression"])
         all_join_conditions.extend(parse_join_condition(join_exp))
@@ -88,4 +88,4 @@ def read_table_ids(table_exp):
     if not table_alias:
         table_alias = table_name.split(".").pop()
 
-    return table_name.lower(), table_alias.lower()
+    return table_name, table_alias

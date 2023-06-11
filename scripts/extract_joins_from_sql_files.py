@@ -9,7 +9,7 @@ from pathlib import Path
 from pprint import pprint
 
 import pandas as pd
-
+import traceback
 from parse_sql.extract_from_parsed import extract_all_joins_from_file
 from parse_sql.parsers import read_and_parse_sql_file
 
@@ -52,6 +52,7 @@ def extract_join_from_all_files(dag_dir: Path):
             is_parsing_success.append(True)
         except Exception as e:
             print("  Failed :", e)
+            traceback.print_tb(e.__traceback__)
             is_parsing_success.append(False)
 
     df_join_conditions = pd.DataFrame(

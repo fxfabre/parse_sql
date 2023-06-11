@@ -13,7 +13,8 @@ import sys
 
 def graph_table_joins(table_prefix=""):
     df_raw = pd.read_csv(
-        os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
+        os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv"),
+        usecols=["left_table", "left_col", "right_table", "right_col", "frequency"]
     )
 
     df_raw = df_raw[df_raw["left_table"] < df_raw["right_table"]]  # deduplicate

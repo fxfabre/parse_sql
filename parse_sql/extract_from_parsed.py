@@ -17,8 +17,8 @@ def get_bq_schema_with_cols() -> Dict[TableId, List[ColumnName]]:
 
     with open(bq_schema_path, "r") as f:
         return {
-            k: [c["name"] for c in table_infos["schema"]]
-            for k, table_infos in json.load(f).items()
+            table_id.lower(): [c["name"] for c in table_infos["schema"]]
+            for table_id, table_infos in json.load(f).items()
         }
 
 
@@ -45,7 +45,7 @@ def get_available_cols_names(cte_name: str, parsing_by_cte: Dict[str, Query]):
     tables_from_cte = {
         table_alias: list(parsing_by_cte[table_id]["select"].keys())
         for table_alias, table_id in tables_alias.items()
-        if table_id not in bq_schema
+        if table_id.lower() not in bq_schema
     }
 
     return {
@@ -59,6 +59,9 @@ def resolve_table_alias(table_alias, col_name, parsing_by_cte):
     global bq_schema
     if bq_schema is None:
         bq_schema = get_bq_schema_with_cols()
+
+    table_alias = table_alias.lower()
+    col_name = col_name.lower()
 
     if table_alias in bq_schema:
         return ":".join((table_alias, col_name))
@@ -118,7 +121,7 @@ def extract_all_joins_from_file(parsing_by_cte_with_unions: Dict[str, List[Query
     queries_combinations = list(product(*list(parsing_by_cte_with_unions.values())))
 
     nb_combinations = len(queries_combinations)
-    if nb_combinations > 30:
+    if nb_combinations > 50:
         raise Exception("Too many combinations in file. Skip")
 
     for queries in queries_combinations:
