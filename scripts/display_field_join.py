@@ -12,6 +12,7 @@ from collections import Counter
 from pprint import pprint
 
 import pandas as pd
+from typing import List
 
 
 def graph_field_joins():
@@ -26,8 +27,9 @@ def graph_field_joins():
     clustered_keys = cluster_same_fields(df_joins)
     pprint(clustered_keys)
 
+    # Save list of clusters, ready to paste into confluence
     with open("column_joins.txt", "w+") as f:
-        for table_column_names in sorted(clustered_keys.values(), key=len, reverse=True):
+        for table_column_names in sorted(clustered_keys, key=len, reverse=True):
             cols = (col.split(":")[0] for col in table_column_names)
             lines = [
                 Counter(col for col in cols if col.lower() != "id").most_common(1)[0][0]
@@ -35,8 +37,17 @@ def graph_field_joins():
             lines.extend(map(format_col_name, sorted(table_column_names)))
             f.write("### " + "\n> ".join(lines) + "\n\n")
 
+    # Prepare cluster id with file_name, to gen 1 graph per cluster
+    clusters = {
+        table_id: num_cluster
+        for num_cluster, table_ids in enumerate(clustered_keys)
+        for table_id in table_ids
+    }
 
-def cluster_same_fields(df_joins):
+    df_raw["cluster_id"] = df_raw["left_table"].map(clusters.get)
+
+
+def cluster_same_fields(df_joins) -> List[set]:
     dict_joins = df_joins.groupby("left").agg({"right": set}).to_dict()["right"]
 
     for nb_loop in range(1000):
@@ -86,7 +97,7 @@ def cluster_same_fields(df_joins):
         pprint(sorted(all_columns))
         print()
 
-    return dict_joins
+    return list(dict_joins.values())
 
 
 def format_col_name(col_name: str):

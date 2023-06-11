@@ -16,6 +16,7 @@ def graph_table_joins(table_prefix=""):
         os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
     )
 
+    df_raw = df_raw[df_raw["left_table"] < df_raw["right_table"]]  # deduplicate
     df_raw = df_raw[
         df_raw["left_table"].str.startswith(table_prefix) |
         df_raw["right_table"].str.startswith(table_prefix)
@@ -27,7 +28,7 @@ def graph_table_joins(table_prefix=""):
     ].groupby(
         ["left_table", "right_table"], as_index=False
     ).agg({"column_equality": list, "frequency": sum}).assign(
-        column_equality=lambda _df: _df["column_equality"].map(", ".join)
+        column_equality=lambda _df: _df["column_equality"].map("\n".join)
     )#.query("frequency > 2")
 
     node_frequency = pd.concat([
