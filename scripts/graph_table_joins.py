@@ -12,41 +12,27 @@ import sys
 
 
 def graph_table_joins(table_prefix=""):
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency_no_func.csv")
-    df_raw = pd.read_csv(csv_file_path)
-
-    df_raw = df_raw.assign(
-        table_left=lambda _df: _df["join_condition"].map(
-            lambda join: join.split("=")[0].strip().split(":")[0].lower()
-        ),
-        table_right=lambda _df: _df["join_condition"].map(
-            lambda join: join.split("=")[1].strip().split(":")[0].lower()
-        )
+    df_raw = pd.read_csv(
+        os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
     )
 
-    #df_raw = df_raw[df_raw["table_left"] < df_raw["table_right"]]   # deduplicate
-    df_raw = df_raw[~df_raw["table_left"].map(lambda node: "." not in node)]
-    df_raw = df_raw[~df_raw["table_right"].map(lambda node: "." not in node)]
     df_raw = df_raw[
-        df_raw["table_left"].str.startswith(table_prefix) | df_raw["table_right"].str.startswith(table_prefix)
+        df_raw["left_table"].str.startswith(table_prefix) |
+        df_raw["right_table"].str.startswith(table_prefix)
     ]
 
-    df_raw = df_raw.assign(
-        column_equality=lambda _df: _df["join_condition"].map(
-            lambda join: join.split("=")[0].strip().split(":")[1] + " = " +
-                         join.split("=")[1].strip().split(":")[1]
-        ).str.lower()
-    )[
-        ["table_left", "table_right", "column_equality", "frequency"]
+    df_raw["column_equality"] = (df_raw["left_col"] + " = " + df_raw["right_col"]).str.lower()
+    df_raw = df_raw[
+        ["left_table", "right_table", "column_equality", "frequency"]
     ].groupby(
-        ["table_left", "table_right"], as_index=False
+        ["left_table", "right_table"], as_index=False
     ).agg({"column_equality": list, "frequency": sum}).assign(
         column_equality=lambda _df: _df["column_equality"].map(", ".join)
     )#.query("frequency > 2")
 
     node_frequency = pd.concat([
-        df_raw.rename(columns={"table_left": "node"}),
-        df_raw.rename(columns={"table_right": "node"})
+        df_raw.rename(columns={"left_table": "node"}),
+        df_raw.rename(columns={"right_table": "node"})
     ], ignore_index=True)[
         ["node", "frequency"]
     ].groupby("node").agg({"frequency": "sum"}).to_dict()["frequency"]
@@ -69,7 +55,7 @@ def graph_table_joins(table_prefix=""):
 
     # create edges
     for idx, row in df_raw.iterrows():
-        f.edge(row["table_left"], row["table_right"], row["column_equality"])
+        f.edge(row["left_table"], row["right_table"], row["column_equality"])
 
     f.view()
 

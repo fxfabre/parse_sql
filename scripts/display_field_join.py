@@ -15,27 +15,8 @@ import pandas as pd
 
 
 def graph_field_joins():
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency_no_func.csv")
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
     df_raw = pd.read_csv(csv_file_path)
-
-    df_raw = df_raw.assign(
-        left=lambda _df: _df["join_condition"].map(
-            lambda join: join.split("=")[0].strip().lower()
-        ),
-        right=lambda _df: _df["join_condition"].map(
-            lambda join: join.split("=")[1].strip().lower()
-        ),
-    )
-    # rm tmp tables
-    df_raw = df_raw[df_raw["left"].map(lambda node: "." in node)]
-    df_raw = df_raw[df_raw["right"].map(lambda node: "." in node)]
-
-    df_raw["left"] = df_raw["left"].map(
-        lambda col: col.split(".")[0].upper() + "." + col.split(".")[1].lower()
-    )
-    df_raw["right"] = df_raw["right"].map(
-        lambda col: col.split(".")[0].upper() + "." + col.split(".")[1].lower()
-    )
 
     df_joins = pd.concat([
         df_raw.rename(columns={"left": "0", "right": "1"}),

@@ -67,10 +67,35 @@ def extract_join_from_all_files(dag_dir: Path):
         .head(30)
         .to_dict("records")
     )
+    save_file_joins_frequency(df_join_conditions)
 
-    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency.csv")
+
+def save_file_joins_frequency(df):
+    csv_file_path = os.path.join(os.getenv("DATA_DIR"), "parse_sql", "joins_frequency")
     os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
-    df_join_conditions.sort_values("frequency", ascending=False).to_csv(csv_file_path, index=False)
+    df.sort_values("frequency", ascending=False).to_csv(csv_file_path + "_raw.csv", index=False)
+
+    df = df.assign(
+        join_condition=lambda _df: _df["join_condition"].str.lower(),
+
+        left=lambda _df: _df["join_condition"].map(
+            lambda join: join.split("=")[0].strip().lower()
+        ),
+        left_table=lambda _df: _df["left"].map(lambda x: x.split(":")[0] if ":" in x else ""),
+        left_col=lambda _df: _df["left"].map(lambda x: x.split(":")[1] if ":" in x else x),
+
+        right=lambda _df: _df["join_condition"].map(
+            lambda join: join.split("=")[1].strip().lower()
+        ),
+        right_table=lambda _df: _df["right"].map(lambda x: x.split(":")[0] if ":" in x else ""),
+        right_col=lambda _df: _df["right"].map(lambda x: x.split(":")[1] if ":" in x else x),
+    ).where(
+        # rm tmp tables
+        lambda _df: _df["left_table"].str.contains(".", regex=False) &
+                    _df["right_table"].str.contains(".", regex=False)
+    )[["left_table", "left_col", "right_table", "right_col", "frequency"]].dropna()
+
+    df.sort_values("frequency", ascending=False).to_csv(csv_file_path + ".csv", index=False)
 
 
 if __name__ == '__main__':
