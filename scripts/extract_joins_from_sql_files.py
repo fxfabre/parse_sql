@@ -77,7 +77,6 @@ def save_file_joins_frequency(df):
     df.sort_values("frequency", ascending=False).to_csv(csv_file_path + "_raw.csv", index=False)
 
     df = df.assign(
-        file_name=lambda _df: _df["file_name"].map(lambda x: x.split("_to_").pop()),
         join_condition=lambda _df: _df["join_condition"].str.lower(),
 
         left=lambda _df: _df["join_condition"].map(lambda join: join.split("=")[0].strip().lower()),
