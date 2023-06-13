@@ -35,14 +35,14 @@ simple_queries = {
         __query__=[{
             "join": [],
             "select": {
+                "user_id": "user_id",
+                "user_name": "user_name",
+                "status_id": "status_id",
+                "status_name": "status_name",
                 "campaign_id": "campaign_id",
                 "campaign_name": "campaign_name",
                 "date": "function()",
                 "duration": "function()",
-                "status_id": "status_id",
-                "status_name": "status_name",
-                "user_id": "user_id",
-                "user_name": "user_name",
             },
             "tables": {"agents_details_recording": "dw_diabolo.agents_details_recording"},
         }]
@@ -51,8 +51,8 @@ simple_queries = {
         __query__=[{
             "join": [],
             "select": {
-                "callType": "callType",
-                "displayedNumber": "displayedNumber",
+                "calltype": "calltype",
+                "displayednumber": "displayednumber",
                 "mois": "function()",
                 "nb_calls": "function()",
                 "nb_repondeurs": "function()",
@@ -71,22 +71,22 @@ simple_queries = {
         __query__=[{
             "join": [
                 (["ab", "chantier_id"], ["c", "id"]),
-                (["f", "PES_Chantier__c"], ["c", "id"]),
-                (["p", "Facture__c"], ["f", "id"]),
-                (["t", "Dossier__c"], ["c", "id"]),
-                (["a", "id"], ["c", "PES_Compte_associe__c"]),
-                (["o", "id"], ["t", "IdOpportuniteSherlock__c"]),
+                (["f", "pes_chantier__c"], ["c", "id"]),
+                (["p", "facture__c"], ["f", "id"]),
+                (["t", "dossier__c"], ["c", "id"]),
+                (["a", "id"], ["c", "pes_compte_associe__c"]),
+                (["o", "id"], ["t", "idopportunitesherlock__c"]),
                 (["o", "solution_id"], ["s", "id"]),
                 (["s", "vulcain_type_travaux_id"], ["tt", "id"]),
-                (["devis_post_vt_envoye", "PES_Chantier__c"], ["c", "id"]),
-                (["devis_post_vt_signe", "PES_Chantier__c"], ["c", "id"]),
+                (["devis_post_vt_envoye", "pes_chantier__c"], ["c", "id"]),
+                (["devis_post_vt_signe", "pes_chantier__c"], ["c", "id"]),
             ],
             "select": {
-                "chantier_devis_montant": "function()",
                 "chantier_id": "c.id",
-                "chantier_statut": "c.PES_Statut_Chantier__c",
-                "chantier_vt_date_commande": "c.Date_de_la_commande_VT__c",
-                "chantier_vt_date_realisation": "c.PES_Date_Visite_Technique__c",
+                "chantier_statut": "c.pes_statut_chantier__c",
+                "chantier_vt_date_commande": "c.date_de_la_commande_vt__c",
+                "chantier_vt_date_realisation": "c.pes_date_visite_technique__c",
+                "chantier_devis_montant": "function()",
             },
             "tables": {
                 "a": "dw_salesforce_pes.account",
@@ -226,7 +226,7 @@ ctes = {
         }],
         __query__=[{
             "select": {
-                "Nom_Service": "t.Nom_Service",
+                "nom_service": "t.nom_service",
                 "call_date": "t.call_date",
                 "code_cloture": "t.code_cloture",
                 "nb_calls": "function()",
@@ -490,7 +490,7 @@ complex_queries = {
                 "client": "effy_store.clients",
                 "contact": "effy_store.contacts",
                 "ddp": "deals_demande_prospect_tmp",
-                "deals": "DW_HUBSPOT.deals",
+                "deals": "dw_hubspot.deals",
                 "eb": "existing_business_tmp",
                 "piste": "effy_store.pistes",
                 "wrapup": "last_wrapup_name_by_piste",
@@ -673,6 +673,34 @@ complex_queries = {
     #         ]
     #     }]
     # ),
+    "tests/complex_queries/star_select.sql": OrderedDict(
+        diabolo_contact_treated_tmp2=[{
+            'join': [],
+            'select': {'adress': 'adress', 'contact_id': 'contact_id'},
+            'tables': {'dummy_table_name': 'dummy_table_name'}
+        }],
+        diabolo_contact_treated=[{
+            'join': [
+                (['c', 'date_contact_is_treated'], ['u', 'extract_datetime'])
+            ],
+            'select': {
+                '*': '*',
+                'contact_treated_by_agent_email': 'function()',
+                'contact_treated_by_agent_first_name': 'function()',
+                'contact_treated_by_agent_folder': 'function()',
+                'contact_treated_by_agent_last_name': 'function()'
+            },
+            'tables': {
+                'c': 'diabolo_contact_treated_tmp2',
+                'u': 'dw_diabolo.public_users_folder_histo'
+            }
+        }],
+        __query__=[{
+            'join': [],
+            'select': {'*': '*'},
+            'tables': {'diabolo_contact_treated': 'diabolo_contact_treated'}
+        }]
+    ),
 }
 
 
@@ -722,7 +750,7 @@ class TestEachSql(TestCase):
 
         self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
 
-    @parameterized.expand(complex_queries)
-    def test_complex_queries(self, file_path: Path):
+    @parameterized.expand(complex_sql_files)
+    def test_complex_files(self, file_path: Path):
         parsing_by_cte = read_and_parse_sql_file(file_path)
-        self.assertIsNotNone(parsing_by_cte)
+        self.assertIsNotNone(parsing_by_cte, file_path)

@@ -73,6 +73,7 @@ def resolve_table_alias(table_alias, col_name, parsing_by_cte):
     select_cols = cte_query["select"]
     if col_name not in select_cols:
         print("  Unable to find", col_name, "in cte", table_alias)
+        print(cte_query)
         return ""
     col_source = select_cols[col_name].split(".")
 

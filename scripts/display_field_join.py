@@ -52,12 +52,19 @@ def graph_field_joins():
     df_raw.to_csv("clustered.csv", index=False)
 
     # Generate graphs:
-    for cluster_id, sub_df in df_raw.query("cluster_id == 2").groupby("cluster_id"):
+    for cluster_id, sub_df in df_raw.groupby("cluster_id"):  # .query("cluster_id <= 5")
         df_cluster = sub_df.groupby(["left", "right"], as_index=False).agg({"file_name": "\n".join})
         pprint(df_cluster)
 
-        f = graphviz.Digraph('bigquery', filename=f"cluster_columns_{cluster_id}.gv")
-        for node_name in set(df_cluster["left"]) | set(df_cluster["right"]):
+        nodes = set(df_cluster["left"]) | set(df_cluster["right"])
+        if len(nodes) < 5:
+            continue
+
+        cluster_name = Counter(
+            df_cluster["left_col"].tolist() + df_cluster["right_col"].tolist()
+        ).most_common(1)[0][0]
+        f = graphviz.Digraph('bigquery', filename=f"cluster_{cluster_name}_{cluster_id}.gv")
+        for node_name in nodes:
             f.node(node_name)
         for idx, row in df_cluster.iterrows():
             print("edge", row["left"], row["right"])
