@@ -12,6 +12,7 @@ import pandas as pd
 import traceback
 from parse_sql.extract_from_parsed import extract_all_joins_from_file
 from parse_sql.parsers import read_and_parse_sql_file
+from parse_sql.file_io import get_bq_schema_with_cols
 
 
 def pretty_print(json_content):
@@ -37,6 +38,8 @@ def extract_join_from_all_files(dag_dir: Path):
                 if file_name.endswith(".sql")
             )
 
+    bq_schema = get_bq_schema_with_cols()
+
     join_conditions = []
     is_parsing_success = []
     files = [dag_dir] if dag_dir.is_file() else iter_files(dag_dir)
@@ -44,7 +47,7 @@ def extract_join_from_all_files(dag_dir: Path):
         print(file_path.as_posix())
         try:
             parsing_by_cte = read_and_parse_sql_file(file_path)
-            counter_for_file = extract_all_joins_from_file(parsing_by_cte)
+            counter_for_file = extract_all_joins_from_file(parsing_by_cte, bq_schema)
             join_conditions.extend(
                 (join_condition, frequency, file_path.stem)
                 for join_condition, frequency in counter_for_file.items()
