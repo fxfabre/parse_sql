@@ -16,4 +16,3 @@ def get_bq_schema_with_cols() -> Dict[TableId, List[ColumnName]]:
             table_id.lower(): [c["name"] for c in table_infos["schema"]]
             for table_id, table_infos in json.load(f).items()
         }
-

@@ -28,7 +28,7 @@ def graph_table_joins(table_prefix=""):
         ["left_table", "right_table", "column_equality", "frequency"]
     ].groupby(
         ["left_table", "right_table"], as_index=False
-    ).agg({"column_equality": list, "frequency": sum}).assign(
+    ).agg({"column_equality": set, "frequency": sum}).assign(
         column_equality=lambda _df: _df["column_equality"].map("\n".join)
     )#.query("frequency > 2")
 
@@ -57,7 +57,11 @@ def graph_table_joins(table_prefix=""):
 
     # create edges
     for idx, row in df_raw.iterrows():
-        f.edge(row["left_table"], row["right_table"], row["column_equality"])
+        f.edge(
+            reformat_table_name(row["left_table"]),
+            reformat_table_name(row["right_table"]),
+            row["column_equality"]
+        )
 
     f.view()
 
@@ -73,9 +77,16 @@ def create_node(f, node_name: str, **kwargs):
         color = "blue2"
     else:
         color = "white"
+
     # color (circle), fillcolor (background), fontcolor (text)
     # penwidth : > 0, default 1.0
-    f.node(node_name, color=color, **kwargs)
+    f.node(reformat_table_name(node_name), color=color, **kwargs)
+
+
+def reformat_table_name(table_name) -> str:
+    name_split = table_name.split(".")
+    name_split[0] = name_split[0].upper()
+    return ".".join(name_split)
 
 
 if __name__ == '__main__':

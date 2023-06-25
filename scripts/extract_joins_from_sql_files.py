@@ -30,6 +30,8 @@ def debug_file():
 
 def extract_join_from_all_files(dag_dir: Path):
     def iter_files(start_folder: Path):
+        if start_folder.is_file():
+            return [start_folder]
         for root, dirs, files in os.walk(start_folder.as_posix()):
             root_folder = Path(root).absolute()
             yield from (
@@ -42,8 +44,7 @@ def extract_join_from_all_files(dag_dir: Path):
 
     join_conditions = []
     is_parsing_success = []
-    files = [dag_dir] if dag_dir.is_file() else iter_files(dag_dir)
-    for file_path in files:
+    for file_path in iter_files(dag_dir):
         print(file_path.as_posix())
         try:
             parsing_by_cte = read_and_parse_sql_file(file_path)

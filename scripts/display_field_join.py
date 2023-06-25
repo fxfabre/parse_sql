@@ -23,7 +23,7 @@ def graph_field_joins():
     ).assign(
         left=lambda df: df["left_table"] + " " + df["left_col"],
         right=lambda df: df["right_table"] + " " + df["right_col"],
-    )[["file_name", "left", "right"]]
+    )[["file_name", "left", "left_col", "right", "right_col"]]
 
     df_joins = pd.concat([
         df_raw.rename(columns={"left": "0", "right": "1"}),
@@ -53,18 +53,28 @@ def graph_field_joins():
 
     # Generate graphs:
     for cluster_id, sub_df in df_raw.groupby("cluster_id"):  # .query("cluster_id <= 5")
-        df_cluster = sub_df.groupby(["left", "right"], as_index=False).agg({"file_name": "\n".join})
-        pprint(df_cluster)
+        df_cluster = sub_df.groupby(
+            ["left", "left_col", "right", "right_col"],
+            as_index=False,
+        ).agg({"file_name": "\n".join})
+        # pprint(df_cluster)
 
-        nodes = set(df_cluster["left"]) | set(df_cluster["right"])
-        if len(nodes) < 5:
+        table_names = set(df_cluster["left"]) | set(df_cluster["right"])
+        column_names = [
+            col
+            for col in df_cluster["left_col"].tolist() + df_cluster["right_col"].tolist()
+            if col != "id"
+        ]
+
+        if len(table_names) < 5:
             continue
+        if len(column_names) > 0:
+            cluster_name = Counter(column_names).most_common(1)[0][0]
+        else:
+            cluster_name = df_cluster["left"].iloc[0]
 
-        cluster_name = Counter(
-            df_cluster["left_col"].tolist() + df_cluster["right_col"].tolist()
-        ).most_common(1)[0][0]
-        f = graphviz.Digraph('bigquery', filename=f"cluster_{cluster_name}_{cluster_id}.gv")
-        for node_name in nodes:
+        f = graphviz.Digraph('bigquery', filename=f"cluster_fields/{cluster_name}_{cluster_id}")
+        for node_name in table_names:
             f.node(node_name)
         for idx, row in df_cluster.iterrows():
             print("edge", row["left"], row["right"])
@@ -99,7 +109,7 @@ def cluster_same_fields(df_joins) -> List[set]:
 
         all_columns = set()
         for key in set(keys):
-            pprint(dict_joins.get(key))
+            # pprint(dict_joins.get(key))
             all_columns = all_columns | dict_joins.pop(key)
         dict_joins[table_name] = all_columns
 

@@ -1,30 +1,36 @@
 WITH
 
-diabolo_contact_treated_tmp2 as (
+step_1 as (
     select
         contact_id,
         address,
-        dt_contrat as date_contact_is_treated
+        dt_contrat as date_contact
     FROM dataset.table_name
 ),
 
-diabolo_contact_treated AS (
+step_2 as (
+    select *
+    FROM step_1
+),
+
+step_3 AS (
     SELECT DISTINCT
         c.*,
-        LAST_VALUE(u.folder) OVER(w1)       AS contact_treated_by_agent_folder,
-        LAST_VALUE(u.first_name) OVER(w1)   AS contact_treated_by_agent_first_name,
-        LAST_VALUE(u.last_name) OVER(w1)    AS contact_treated_by_agent_last_name,
-        LAST_VALUE(u.email) OVER(w1)        AS contact_treated_by_agent_email
-    FROM diabolo_contact_treated_tmp2 AS c
-    LEFT JOIN DW_DIABOLO.public_users_folder_histo AS u
-        ON CAST(u.id AS STRING) = c.contact_treated_by_agent_id
-        AND c.date_contact_is_treated = u.extract_datetime
+        LAST_VALUE(u.folder) OVER(w1)       AS folder,
+        LAST_VALUE(u.first_name) OVER(w1)   AS first_name,
+        LAST_VALUE(u.last_name) OVER(w1)    AS last_name,
+        LAST_VALUE(u.email) OVER(w1)        AS email
+    FROM step_2 AS c
+    LEFT JOIN dataset.data_histo AS u
+        ON CAST(u.id AS STRING) = c.contact_id
     WINDOW w1 AS (
-        PARTITION BY c.contact_id, c.campaign_id
+        PARTITION BY c.contact_id
         ORDER BY u.extract_datetime ASC
         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
     )
 )
 
-select *
-from diabolo_contact_treated
+select
+    contact_id,
+    address
+from step_3

@@ -674,33 +674,39 @@ complex_queries = {
     #     }]
     # ),
     "tests/complex_queries/star_select.sql": OrderedDict(
-        diabolo_contact_treated_tmp2=[{
+        step_1=[{
             'join': [],
-            'select': {'adress': 'adress', 'contact_id': 'contact_id'},
-            'tables': {'dummy_table_name': 'dummy_table_name'}
+            'select': {
+                'contact_id': 'contact_id',
+                'address': 'address',
+                'date_contact': 'dt_contrat',
+            },
+            'tables': {'table_name': 'dataset.table_name'}
         }],
-        diabolo_contact_treated=[{
-            'join': [
-                (['c', 'date_contact_is_treated'], ['u', 'extract_datetime'])
-            ],
+        step_2=[{
+            'join': [],
+            'select': {'*': '*'},
+            'tables': {'step_1': 'step_1'}
+        }],
+        step_3=[{
+            'join': [],
             'select': {
                 '*': '*',
-                'contact_treated_by_agent_email': 'function()',
-                'contact_treated_by_agent_first_name': 'function()',
-                'contact_treated_by_agent_folder': 'function()',
-                'contact_treated_by_agent_last_name': 'function()'
+                'email': 'function()',
+                'first_name': 'function()',
+                'folder': 'function()',
+                'last_name': 'function()',
             },
             'tables': {
-                'c': 'diabolo_contact_treated_tmp2',
-                'u': 'dw_diabolo.public_users_folder_histo'
+                'c': 'step_2', 'u': 'dataset.data_histo'
             }
         }],
         __query__=[{
             'join': [],
-            'select': {'*': '*'},
-            'tables': {'diabolo_contact_treated': 'diabolo_contact_treated'}
+            'select': {'address': 'address', 'contact_id': 'contact_id'},
+            'tables': {'step_3': 'step_3'}
         }]
-    ),
+    )
 }
 
 
