@@ -20,7 +20,7 @@ WITH
 
 existing_business_tmp AS (
     SELECT
-        LOWER(client.email)                 AS email,
+        LOWER(client.eMail)                 AS emaIl,
         MIN(piste.created_at)               AS piste_created_at,
         MAX(
             CASE
