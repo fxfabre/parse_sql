@@ -35,29 +35,29 @@ simple_queries = {
         __query__=[{
             "join": [],
             "select": {
+                "user_id": "user_id",
+                "user_name": "user_name",
+                "status_id": "status_id",
+                "status_name": "status_name",
                 "campaign_id": "campaign_id",
                 "campaign_name": "campaign_name",
                 "date": "function()",
                 "duration": "function()",
-                "status_id": "status_id",
-                "status_name": "status_name",
-                "user_id": "user_id",
-                "user_name": "user_name",
             },
-            "tables": {"agents_details_recording": "DW_DIABOLO.agents_details_recording"},
+            "tables": {"agents_details_recording": "dw_diabolo.agents_details_recording"},
         }]
     ),
     "tests/basic_queries/query_groupby_2.sql": OrderedDict(
         __query__=[{
             "join": [],
             "select": {
-                "callType": "callType",
-                "displayedNumber": "displayedNumber",
+                "calltype": "calltype",
+                "displayednumber": "displayednumber",
                 "mois": "function()",
                 "nb_calls": "function()",
                 "nb_repondeurs": "function()",
             },
-            "tables": {"calls_details_recording": "DW_DIABOLO.calls_details_recording"},
+            "tables": {"calls_details_recording": "dw_diabolo.calls_details_recording"},
         }]
     ),
     "tests/basic_queries/query_join.sql": OrderedDict(
@@ -71,35 +71,35 @@ simple_queries = {
         __query__=[{
             "join": [
                 (["ab", "chantier_id"], ["c", "id"]),
-                (["f", "PES_Chantier__c"], ["c", "id"]),
-                (["p", "Facture__c"], ["f", "id"]),
-                (["t", "Dossier__c"], ["c", "id"]),
-                (["a", "id"], ["c", "PES_Compte_associe__c"]),
-                (["o", "id"], ["t", "IdOpportuniteSherlock__c"]),
+                (["f", "pes_chantier__c"], ["c", "id"]),
+                (["p", "facture__c"], ["f", "id"]),
+                (["t", "dossier__c"], ["c", "id"]),
+                (["a", "id"], ["c", "pes_compte_associe__c"]),
+                (["o", "id"], ["t", "idopportunitesherlock__c"]),
                 (["o", "solution_id"], ["s", "id"]),
                 (["s", "vulcain_type_travaux_id"], ["tt", "id"]),
-                (["devis_post_vt_envoye", "PES_Chantier__c"], ["c", "id"]),
-                (["devis_post_vt_signe", "PES_Chantier__c"], ["c", "id"]),
+                (["devis_post_vt_envoye", "pes_chantier__c"], ["c", "id"]),
+                (["devis_post_vt_signe", "pes_chantier__c"], ["c", "id"]),
             ],
             "select": {
-                "chantier_devis_montant": "function()",
                 "chantier_id": "c.id",
-                "chantier_statut": "c.PES_Statut_Chantier__c",
-                "chantier_vt_date_commande": "c.Date_de_la_commande_VT__c",
-                "chantier_vt_date_realisation": "c.PES_Date_Visite_Technique__c",
+                "chantier_statut": "c.pes_statut_chantier__c",
+                "chantier_vt_date_commande": "c.date_de_la_commande_vt__c",
+                "chantier_vt_date_realisation": "c.pes_date_visite_technique__c",
+                "chantier_devis_montant": "function()",
             },
             "tables": {
-                "a": "DW_SALESFORCE_PES.account",
-                "ab": "DW_SALESFORCE_PES.chantier_history_abandon_iso_chauffage",
-                "c": "DW_SALESFORCE_PES.pes_chantier",
+                "a": "dw_salesforce_pes.account",
+                "ab": "dw_salesforce_pes.chantier_history_abandon_iso_chauffage",
+                "c": "dw_salesforce_pes.pes_chantier",
                 "devis_post_vt_envoye": "chantier_isolation_devis_post_vt_envoye",
                 "devis_post_vt_signe": "chantier_isolation_devis_post_vt_signe",
-                "f": "DW_SALESFORCE_PES.pes_facture",
-                "o": "DW_SHERLOCK.opportunites",
-                "p": "DW_SALESFORCE_PES.pes_paiement",
-                "s": "DW_SHERLOCK.solutions",
-                "t": "DW_SALESFORCE_PES.temoin",
-                "tt": "DW_VULCAIN.types_travaux",
+                "f": "dw_salesforce_pes.pes_facture",
+                "o": "dw_sherlock.opportunites",
+                "p": "dw_salesforce_pes.pes_paiement",
+                "s": "dw_sherlock.solutions",
+                "t": "dw_salesforce_pes.temoin",
+                "tt": "dw_vulcain.types_travaux",
             },
         }]
     ),
@@ -107,21 +107,21 @@ simple_queries = {
         __query__=[{
             "join": [(["table1", "c1"], ["table2", "c2"])],
             "select": {"*": "*", "col_1": "col_1", "name_2": "col_2"},
-            "tables": {"alias_T1": "dataset_1.table", "table2": "dataset_2.table2"},
+            "tables": {"alias_t1": "dataset_1.table", "table2": "dataset_2.table2"},
         }]
     ),
     "tests/basic_queries/query_join_alias_2.sql": OrderedDict(
         __query__=[{
             "join": [(["table1", "c1"], ["table2", "c2"])],
             "select": {"*": "*", "col_1": "col_1", "name_2": "col_2"},
-            "tables": {"alias_T1": "dataset_1.table", "table2": "dataset_2.table2"},
+            "tables": {"alias_t1": "dataset_1.table", "table2": "dataset_2.table2"},
         }]
     ),
     "tests/basic_queries/query_where.sql": OrderedDict(
         __query__=[{
             "join": [],
             "select": {"*": "*"},
-            "tables": {"agents_details_recording": "DW_DIABOLO.agents_details_recording"},
+            "tables": {"agents_details_recording": "dw_diabolo.agents_details_recording"},
         }]
     ),
 }
@@ -179,7 +179,7 @@ ctes = {
                 "service_telephone": "a.service_telephone",
                 "type_cloture": "ac.code_cloture_statut",
             },
-            "tables": {"a": "EFFY_STORE.appels", "ac": "EFFY_STORE.appels_codes_cloture"},
+            "tables": {"a": "effy_store.appels", "ac": "effy_store.appels_codes_cloture"},
             "join": [
                 (["a", "id"], ["ac", "appel_id"])
             ],
@@ -213,10 +213,10 @@ ctes = {
                 "type_cloture": "ct.type_cloture",
             },
             "tables": {
-                "c": "EFFY_STORE.clients",
+                "c": "effy_store.clients",
                 "ct": "call_tmp",
-                "o": "EFFY_STORE.opportunites",
-                "p": "EFFY_STORE.pistes",
+                "o": "effy_store.opportunites",
+                "p": "effy_store.pistes",
             },
             "join": [
                 (["ct", "contact_phone"], ["c", "telephone1"]),
@@ -226,7 +226,7 @@ ctes = {
         }],
         __query__=[{
             "select": {
-                "Nom_Service": "t.Nom_Service",
+                "nom_service": "t.nom_service",
                 "call_date": "t.call_date",
                 "code_cloture": "t.code_cloture",
                 "nb_calls": "function()",
@@ -326,9 +326,9 @@ complex_queries = {
     #             'cree_a': 'function()'
     #         },
     #         'tables': {
-    #             'cdr': 'DW_DIABOLO.calls_details_recording',
-    #             'u': 'DW_DIABOLO.public_users',
-    #             'o': 'DW_SHERLOCK.operateurs',
+    #             'cdr': 'dw_diabolo.calls_details_recording',
+    #             'u': 'dw_diabolo.public_users',
+    #             'o': 'dw_sherlock.operateurs',
     #             # "wrapups": "UNNEST(...)"
     #         },
     #         'join': [
@@ -350,10 +350,10 @@ complex_queries = {
                 "piste_with_opportunite_gagnee": "function()",
             },
             "tables": {
-                "client": "EFFY_STORE.clients",
-                "opp": "EFFY_STORE.opportunites",
-                "piste": "EFFY_STORE.pistes",
-                "sol": "EFFY_STORE.solutions",
+                "client": "effy_store.clients",
+                "opp": "effy_store.opportunites",
+                "piste": "effy_store.pistes",
+                "sol": "effy_store.solutions",
             },
         }],
         deals_demande_prospect_tmp=[{
@@ -368,10 +368,10 @@ complex_queries = {
                 "piste_id": "piste.id",
             },
             "tables": {
-                "opportunites": "EFFY_STORE.opportunites",
-                "piste": "EFFY_STORE.pistes",
-                "solutions": "EFFY_STORE.solutions",
-                "stocks": "EFFY_STORE.stocks",
+                "opportunites": "effy_store.opportunites",
+                "piste": "effy_store.pistes",
+                "solutions": "effy_store.solutions",
+                "stocks": "effy_store.stocks",
             },
         }],
         piste_last_campagne=[{
@@ -385,9 +385,9 @@ complex_queries = {
                 "piste_id": "p.id",
             },
             "tables": {
-                "campagne": "EFFY_STORE.campagnes",
-                "contact": "EFFY_STORE.contacts",
-                "p": "EFFY_STORE.pistes",
+                "campagne": "effy_store.campagnes",
+                "contact": "effy_store.contacts",
+                "p": "effy_store.pistes",
             },
         }],
         piste_appelee=[{
@@ -400,17 +400,17 @@ complex_queries = {
             ],
             "select": {"nb_appel": "function()", "piste_id": "piste.id"},
             "tables": {
-                "calls": "EFFY_STORE.appels",
-                "campagne": "EFFY_STORE.campagnes",
-                "contact": "EFFY_STORE.contacts",
-                "piste": "EFFY_STORE.pistes",
-                "wrapup": "EFFY_STORE.appels_codes_cloture",
+                "calls": "effy_store.appels",
+                "campagne": "effy_store.campagnes",
+                "contact": "effy_store.contacts",
+                "piste": "effy_store.pistes",
+                "wrapup": "effy_store.appels_codes_cloture",
             },
         }],
         selfcare_dossier_non_cree=[{
             "join": [(["opp", "piste_id"], ["p", "id"])],
             "select": {"nb_opp_gagnee": "function()", "piste_id": "p.id"},
-            "tables": {"opp": "EFFY_STORE.opportunites", "p": "EFFY_STORE.pistes"},
+            "tables": {"opp": "effy_store.opportunites", "p": "effy_store.pistes"},
         }],
         airbnb_non_eligible=[{
             "join": [
@@ -422,7 +422,7 @@ complex_queries = {
             "tables": {
                 "lcs": "piste_last_campagne",
                 "pa": "piste_appelee",
-                "piste": "EFFY_STORE.pistes",
+                "piste": "effy_store.pistes",
                 "sdne": "selfcare_dossier_non_cree",
             },
         }],
@@ -434,9 +434,9 @@ complex_queries = {
             ],
             "select": {"last_wrapup_name": "function()", "piste_id": "c.piste_id"},
             "tables": {
-                "a": "EFFY_STORE.appels",
-                "c": "EFFY_STORE.contacts",
-                "wrapup": "EFFY_STORE.appels_codes_cloture",
+                "a": "effy_store.appels",
+                "c": "effy_store.contacts",
+                "wrapup": "effy_store.appels_codes_cloture",
             },
         }],
         deals_demande_prospects=[{
@@ -457,11 +457,11 @@ complex_queries = {
                 "piste_id": "piste.id",
             },
             "tables": {
-                "client": "EFFY_STORE.clients",
-                "contact": "EFFY_STORE.contacts",
+                "client": "effy_store.clients",
+                "contact": "effy_store.contacts",
                 "ddp": "deals_demande_prospect_tmp",
                 "eb": "existing_business_tmp",
-                "piste": "EFFY_STORE.pistes",
+                "piste": "effy_store.pistes",
                 "wrapup": "last_wrapup_name_by_piste",
             },
         }],
@@ -487,12 +487,12 @@ complex_queries = {
                 "piste_id": "piste.id",
             },
             "tables": {
-                "client": "EFFY_STORE.clients",
-                "contact": "EFFY_STORE.contacts",
+                "client": "effy_store.clients",
+                "contact": "effy_store.contacts",
                 "ddp": "deals_demande_prospect_tmp",
-                "deals": "DW_HUBSPOT.deals",
+                "deals": "dw_hubspot.deals",
                 "eb": "existing_business_tmp",
-                "piste": "EFFY_STORE.pistes",
+                "piste": "effy_store.pistes",
                 "wrapup": "last_wrapup_name_by_piste",
             },
         }],
@@ -510,7 +510,7 @@ complex_queries = {
             },
             'tables': {
                 'ddp': 'deals_demande_prospects',
-                'piste': 'EFFY_STORE.pistes'
+                'piste': 'effy_store.pistes'
             },
             'join': [(['piste', 'id'], ['ddp', 'piste_id'])],
         }, {
@@ -527,7 +527,7 @@ complex_queries = {
             },
             'tables': {
                 'ddp': 'deals_transfo_non_intentionniste',
-                'piste': 'EFFY_STORE.pistes'
+                'piste': 'effy_store.pistes'
             },
             'join': [(['piste', 'id'], ['ddp', 'piste_id'])],
         }],
@@ -629,13 +629,13 @@ complex_queries = {
                 "deals_works_type": "piste.type_travaux_demande",
             },
             "tables": {
-                "acco": "DW_RCU.accommodations",
+                "acco": "dw_rcu.accommodations",
                 "airbnb_non_eligible": "airbnb_non_eligible",
-                "c": "DM_MARKETING_AUTOMATION_B2C.contacts",
-                "heating_systems": "DW_RCU.existing_heating_systems",
-                "het": "DW_RCU.heating_energies_types",
+                "c": "dm_marketing_automation_b2c.contacts",
+                "heating_systems": "dw_rcu.existing_heating_systems",
+                "het": "dw_rcu.heating_energies_types",
                 "join_all": "join_prospect_intentionistes",
-                "piste": "EFFY_STORE.pistes",
+                "piste": "effy_store.pistes",
                 "sdne": "selfcare_dossier_non_cree",
             },
         }],
@@ -673,6 +673,40 @@ complex_queries = {
     #         ]
     #     }]
     # ),
+    "tests/complex_queries/star_select.sql": OrderedDict(
+        step_1=[{
+            'join': [],
+            'select': {
+                'contact_id': 'contact_id',
+                'address': 'address',
+                'date_contact': 'dt_contrat',
+            },
+            'tables': {'table_name': 'dataset.table_name'}
+        }],
+        step_2=[{
+            'join': [],
+            'select': {'*': '*'},
+            'tables': {'step_1': 'step_1'}
+        }],
+        step_3=[{
+            'join': [],
+            'select': {
+                '*': '*',
+                'email': 'function()',
+                'first_name': 'function()',
+                'folder': 'function()',
+                'last_name': 'function()',
+            },
+            'tables': {
+                'c': 'step_2', 'u': 'dataset.data_histo'
+            }
+        }],
+        __query__=[{
+            'join': [],
+            'select': {'address': 'address', 'contact_id': 'contact_id'},
+            'tables': {'step_3': 'step_3'}
+        }]
+    )
 }
 
 
@@ -722,7 +756,7 @@ class TestEachSql(TestCase):
 
         self.assertEqual(parsing_by_cte, expected, json.dumps(parsing_by_cte, indent=4))
 
-    @parameterized.expand(complex_queries)
-    def test_complex_queries(self, file_path: Path):
+    @parameterized.expand(complex_sql_files)
+    def test_complex_files(self, file_path: Path):
         parsing_by_cte = read_and_parse_sql_file(file_path)
-        self.assertIsNotNone(parsing_by_cte)
+        self.assertIsNotNone(parsing_by_cte, file_path)

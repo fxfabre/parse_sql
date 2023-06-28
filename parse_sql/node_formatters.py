@@ -17,8 +17,17 @@ def register_formatter(func):
 @register_formatter
 def format_quoted_identifier(node):
     if isinstance(node, str):
-        return node.strip("`")
-    return node
+        return format_naked_identifier(node.strip("`"))
+    return format_naked_identifier(node)
+
+
+@register_formatter
+def format_naked_identifier(node):
+    if isinstance(node, str):
+        return node.lower()
+    if isinstance(node, list):
+        return [txt.strip() for txt in node]
+    return node     # empty dict ?
 
 
 @register_formatter
