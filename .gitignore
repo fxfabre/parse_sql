@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.DS_Store
 
 # C extensions
 *.so
@@ -147,3 +148,9 @@ cython_debug/
 
 # Project specific
 bq_schema.json
+clustered.csv
+column_joins.txt
+out_fields_join.txt
+joins_frequency.csv
+joins_frequency_raw.csv
+cluster_fields/
