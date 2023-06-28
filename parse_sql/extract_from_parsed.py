@@ -1,99 +1,13 @@
-import json
-import os.path
+from collections import OrderedDict, Counter
+from itertools import product
 from typing import Dict, List
 
-from .models import ColumnName, Query, TableId
-from itertools import product
-from collections import OrderedDict, Counter
-
-bq_schema = None
+from .models import CteName, SimpleQuery, FileQuery, CteQuery
 
 
-def get_bq_schema_with_cols() -> Dict[TableId, List[ColumnName]]:
-    """
-    returns { "dataset.table_name": [col1, ..., coln] }
-    """
-    bq_schema_name = "bq_schema.json"
-    if not os.path.exists(bq_schema_name):
-        bq_schema_name = "../" + bq_schema_name
-
-    with open(bq_schema_name, "r") as f:
-        return {
-            k: [c["name"] for c in table_infos["schema"]]
-            for k, table_infos in json.load(f).items()
-        }
-
-
-# replace_alias_in_cte_query
-def get_available_cols_names(cte_name: str, parsing_by_cte: Dict[str, Query]):
-    """
-    Return { col_name: table_id}
-    eg : {'civilite': 'EFFY_STORE.clients', 'sous_type_travaux': 'EFFY_STORE.opportunites'}
-    """
-    cte_query = parsing_by_cte[cte_name]
-    bq_schema = get_bq_schema_with_cols()
-
-    # split tables in BQ & tables from cte in same file
-    tables_alias: dict = cte_query["tables"]
-    tables_from_bq = {
-        table_alias: bq_schema[table_id]
-        for table_alias, table_id in tables_alias.items()
-        if table_id in bq_schema
-    }
-    # tables_from_cte = {"c": ["col1", ..., "coln"]}
-    tables_from_cte = {
-        table_alias: list(parsing_by_cte[table_id]["select"].keys())
-        for table_alias, table_id in tables_alias.items()
-        if table_id not in bq_schema
-    }
-
-    return {
-        col: tables_alias[table_alias]
-        for table_alias, columns in {**tables_from_bq, **tables_from_cte}.items()
-        for col in columns
-    }
-
-
-def resolve_table_alias(table_alias, col_name, parsing_by_cte):
-    global bq_schema
-    if bq_schema is None:
-        bq_schema = get_bq_schema_with_cols()
-
-    if table_alias in bq_schema:
-        return ":".join((table_alias, col_name))
-    if table_alias not in parsing_by_cte:
-        print("ERROR : Unable to find table alias", table_alias)
-        return ""
-
-    cte_query = parsing_by_cte[table_alias]
-    select_cols = cte_query["select"]
-    if col_name not in select_cols:
-        print("ERROR : Unable to find", col_name, "in cte", table_alias)
-        return ""
-    col_source = select_cols[col_name].split(".")
-
-    if len(col_source) == 2:
-        # col_source = ["t", "type_cloture"]
-        return resolve_table_alias(
-            cte_query["tables"][col_source[0]], col_source[1], parsing_by_cte
-        )
-    if len(col_source) == 1:
-        new_col_name = col_source[0]
-        if new_col_name == "function()":
-            return new_col_name
-
-        available_cols = get_available_cols_names(
-            cte_name=table_alias, parsing_by_cte=parsing_by_cte
-        )
-        if new_col_name in available_cols:
-            print(f"  Guessing {table_alias}.{select_cols[col_name]}", "is from", available_cols[new_col_name])
-            return ":".join((available_cols[new_col_name], new_col_name))
-
-    print(f"  ERROR : Unable to resolve col {table_alias}.{col_name}")
-    return ""
-
-
-def extract_all_joins_from_file(parsing_by_cte_with_unions: Dict[str, List[Query]]) -> Counter:
+def extract_all_joins_from_file(
+        parsing_by_cte_with_unions: FileQuery, bq_schema: Dict[str, List[str]]
+) -> Counter:
     """
     parsing_by_cte = OrderedDict(
         cte_1=[{
@@ -117,19 +31,21 @@ def extract_all_joins_from_file(parsing_by_cte_with_unions: Dict[str, List[Query
     queries_combinations = list(product(*list(parsing_by_cte_with_unions.values())))
 
     nb_combinations = len(queries_combinations)
-    if nb_combinations > 30:
+    if nb_combinations > 50:
         raise Exception("Too many combinations in file. Skip")
 
     for queries in queries_combinations:
         parsing_by_cte = OrderedDict(zip(cte_names, queries))
-        queries_conditions = extract_all_joins_from_query(parsing_by_cte)
+        queries_conditions = extract_all_joins_from_query(parsing_by_cte, bq_schema)
         all_conditions.extend(queries_conditions)
 
     counter = Counter(all_conditions)
     return Counter({k: v / nb_combinations for k, v in counter.items()})
 
 
-def extract_all_joins_from_query(parsing_by_cte: Dict[str, Query]):
+def extract_all_joins_from_query(
+        parsing_by_cte: SimpleQuery, bq_schema: Dict[str, List[str]]
+) -> List[str]:
     """
     parsing_by_cte = OrderedDict(
         cte_1={
@@ -155,15 +71,86 @@ def extract_all_joins_from_query(parsing_by_cte: Dict[str, Query]):
 
             left_alias, left_col = left_cond
             left = resolve_table_alias(
-                tables_alias[left_alias], left_col, parsing_by_cte
+                tables_alias[left_alias], left_col, parsing_by_cte, bq_schema
             )
 
             right_alias, right_col = right_cond
             right = resolve_table_alias(
-                tables_alias[right_alias], right_col, parsing_by_cte
+                tables_alias[right_alias], right_col, parsing_by_cte, bq_schema
             )
 
             if left and right and left.lower() != right.lower():
                 all_conditions.append(" = ".join(sorted([left, right], key=str.lower)))
 
     return all_conditions
+
+
+def resolve_table_alias(
+        table_alias, col_name, parsing_by_cte: SimpleQuery, bq_schema: Dict[str, List[str]]
+) -> str:
+    table_alias = table_alias.lower()
+    col_name = col_name.lower()
+
+    if table_alias in bq_schema:
+        return ":".join((table_alias, col_name))
+    if table_alias not in parsing_by_cte:
+        print("  Unable to find table alias", table_alias)
+        return ""
+
+    cte_query = parsing_by_cte[table_alias]
+    select_cols = cte_query["select"]
+    if col_name not in select_cols:
+        print("  Unable to find", col_name, "in cte", table_alias)
+        print(cte_query)
+        return ""
+    col_source = select_cols[col_name].split(".")
+
+    if len(col_source) == 2:
+        # col_source = ["t", "type_cloture"]
+        return resolve_table_alias(
+            cte_query["tables"][col_source[0]], col_source[1], parsing_by_cte, bq_schema
+        )
+    if len(col_source) == 1:
+        new_col_name = col_source[0]
+        if new_col_name == "function()":
+            return new_col_name
+
+        available_cols = get_available_cols_names(
+            cte_name=table_alias, parsing_by_cte=parsing_by_cte, bq_schema=bq_schema
+        )
+        if new_col_name in available_cols:
+            print(f"  Guessing {table_alias}.{select_cols[col_name]}", "is from", available_cols[new_col_name])
+            return ":".join((available_cols[new_col_name], new_col_name))
+
+    print(f"  Unable to resolve col {table_alias}.{col_name}")
+    return ""
+
+
+def get_available_cols_names(
+        cte_name: CteName, parsing_by_cte: SimpleQuery, bq_schema: Dict[str, List[str]]
+) -> Dict[str, str]:
+    """
+    Return { col_name: table_id }
+    eg : {'civilite': 'EFFY_STORE.clients', 'sous_type_travaux': 'EFFY_STORE.opportunites'}
+    """
+    cte_query: CteQuery = parsing_by_cte[cte_name]
+
+    # split tables in BQ & tables from cte in same file
+    tables_alias: Dict[str, str] = cte_query["tables"]
+    tables_from_bq = {
+        table_alias: bq_schema[table_id]
+        for table_alias, table_id in tables_alias.items()
+        if table_id in bq_schema
+    }
+    # tables_from_cte = {"c": ["col1", ..., "coln"]}
+    tables_from_cte = {
+        table_alias: list(parsing_by_cte[table_id]["select"].keys())
+        for table_alias, table_id in tables_alias.items()
+        if table_id.lower() not in bq_schema
+    }
+
+    return {
+        col: tables_alias[table_alias]
+        for table_alias, columns in {**tables_from_bq, **tables_from_cte}.items()
+        for col in columns
+    }
